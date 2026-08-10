@@ -1,0 +1,34 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Local configuration and secrets ###
+.env
+.env.*
+!.env.example
+application-local-secrets.yml
+*.log
+logs/
+.maven-user-home/
+work/
+
+### IDEs ###
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+.springBeans
+.sts4-cache/
+
+### Operating systems ###
+.DS_Store
+Thumbs.db
+
