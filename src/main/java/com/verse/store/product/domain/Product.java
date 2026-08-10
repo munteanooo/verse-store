@@ -111,6 +111,18 @@ public class Product {
         this.discountPercentage = discountPercentage;
     }
 
+    public void updateDetails(String name, String description, String brand,
+            String collectionName, ProductCategory category, BigDecimal basePrice,
+            BigDecimal discountPercentage) {
+        this.name = name;
+        this.description = description;
+        this.brand = requireText(brand, "brand");
+        this.collectionName = requireText(collectionName, "collectionName");
+        this.category = Objects.requireNonNull(category, "category must not be null");
+        setBasePrice(basePrice);
+        setDiscountPercentage(discountPercentage);
+    }
+
     public void addVariant(ProductVariant variant) {
         Objects.requireNonNull(variant, "variant must not be null");
         if (variant.getProduct() != null && variant.getProduct() != this) {
