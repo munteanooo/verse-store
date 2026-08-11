@@ -16,7 +16,15 @@ public class SecurityNavigationAdvice {
                 && authentication.isAuthenticated()
                 && !(authentication instanceof AnonymousAuthenticationToken);
         model.addAttribute("authenticated", authenticated);
-        model.addAttribute("currentUsername", authenticated ? authentication.getName() : null);
+        String displayName = authentication == null ? null : authentication.getName();
+        if (authenticated && authentication.getPrincipal() instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser user) {
+            String name = user.getClaimAsString("name");
+            displayName = name == null || name.isBlank() ? user.getPreferredUsername() : name;
+            if (displayName == null || displayName.isBlank()) {
+                displayName = "Verse member";
+            }
+        }
+        model.addAttribute("currentUsername", authenticated ? displayName : null);
         model.addAttribute("currentUserAdmin", authenticated && authentication.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN")));
     }

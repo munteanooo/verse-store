@@ -21,11 +21,6 @@ public class CatalogPageController {
         this.catalogService = catalogService;
     }
 
-    @GetMapping("/")
-    public String home() {
-        return "redirect:/catalog";
-    }
-
     @GetMapping("/catalog")
     public String catalog(
             @RequestParam(defaultValue = "0") int page,

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -51,11 +50,6 @@ class CatalogPageControllerTests {
     void filters() {
         when(catalogService.listActiveCategories()).thenReturn(List.of(new CatalogFilterOption("TOPS", "Tops")));
         when(catalogService.listActiveCollections()).thenReturn(List.of("Coastal Lines"));
-    }
-
-    @Test
-    void rootRedirectsToCatalog() throws Exception {
-        mockMvc.perform(get("/")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/catalog"));
     }
 
     @Test

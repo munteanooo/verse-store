@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.hamcrest.Matchers.containsString;
@@ -39,13 +40,16 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.verse.store.product.api.admin.AdminProductController;
 import com.verse.store.product.api.admin.mapper.AdminProductApiMapper;
+import com.verse.store.product.api.catalog.CatalogProductController;
+import com.verse.store.product.api.catalog.mapper.CatalogProductApiMapper;
 import com.verse.store.product.application.catalog.service.ProductCatalogService;
 import com.verse.store.product.application.service.ProductApplicationService;
 import com.verse.store.product.web.AdminProductPageController;
 import com.verse.store.product.web.CatalogPageController;
 
 @WebMvcTest(value = {CatalogPageController.class, AdminProductPageController.class,
-        AdminProductController.class, ProfileController.class, RegistrationController.class}, excludeAutoConfiguration = {
+        AdminProductController.class, ProfileController.class, RegistrationController.class,
+        HomeController.class, CatalogProductController.class}, excludeAutoConfiguration = {
         OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
 @ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
 @Import({SecurityConfig.class, KeycloakRealmRoleConverter.class,
@@ -57,6 +61,7 @@ class SecurityMvcTests {
     @MockitoBean ProductCatalogService catalogService;
     @MockitoBean ProductApplicationService productService;
     @MockitoBean AdminProductApiMapper adminProductApiMapper;
+    @MockitoBean CatalogProductApiMapper catalogProductApiMapper;
     @MockitoBean JwtDecoder jwtDecoder;
 
     @BeforeEach
@@ -68,8 +73,56 @@ class SecurityMvcTests {
     }
 
     @Test
-    void anonymousCatalogIsPublic() throws Exception {
-        mockMvc.perform(get("/catalog")).andExpect(status().isOk());
+    void anonymousLandingOffersOnlyAuthenticationChoices() throws Exception {
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Login")))
+                .andExpect(content().string(containsString("Create account")));
+    }
+
+    @Test
+    void authenticatedCustomerSeesHomeAndCatalogNavigation() throws Exception {
+        mockMvc.perform(get("/").with(user("customer").roles("CUSTOMER")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Essential forms.")))
+                .andExpect(content().string(containsString("Catalog")));
+    }
+
+    @Test
+    void anonymousCatalogRedirectsToLogin() throws Exception {
+        mockMvc.perform(get("/catalog"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/oauth2/authorization/verse-store"));
+    }
+
+    @Test
+    void oidcUserWithoutCustomerRoleCanViewCatalogAndHasSimplifiedHeader() throws Exception {
+        mockMvc.perform(get("/catalog").with(oidcLogin()
+                        .idToken(token -> token.claim("name", "New Member"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">Login<"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">Register<"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">Logout<"))))
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                        org.springframework.util.StringUtils.countOccurrencesOf(
+                                result.getResponse().getContentAsString(), "href=\"/\""))
+                        .isEqualTo(1))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">Home</a>"))))
+                .andExpect(content().string(containsString("href=\"/profile\">New Member</a>")));
+    }
+
+    @Test
+    void anonymousCatalogApiReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/catalog/products"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void authenticatedOidcUserWithoutCustomerRoleCanUseCatalogApi() throws Exception {
+        mockMvc.perform(get("/api/catalog/products").with(oidcLogin()))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -125,12 +178,45 @@ class SecurityMvcTests {
     void customerCanViewProfile() throws Exception {
         mockMvc.perform(get("/profile").with(oidcLogin()
                         .idToken(token -> token
+                                .claim("name", "Considered Customer")
                                 .claim("preferred_username", "customer")
                                 .claim("email", "customer@example.test")
                                 .claim("email_verified", true))
                         .authorities(() -> "ROLE_CUSTOMER")))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("customer@example.test")));
+                .andExpect(content().string(containsString("Considered Customer")))
+                .andExpect(content().string(containsString("customer@example.test")))
+                .andExpect(content().string(containsString("CUSTOMER")))
+                .andExpect(content().string(containsString("Edit personal information")))
+                .andExpect(content().string(containsString("Change password")))
+                .andExpect(content().string(containsString("Delete / deactivate account")))
+                .andExpect(content().string(containsString("Logout")));
+    }
+
+    @Test
+    void oidcUserWithoutCustomerEmailOrUsernameCanViewProfile() throws Exception {
+        mockMvc.perform(get("/profile").with(oidcLogin()
+                        .idToken(token -> token
+                                .claims(claims -> {
+                                    claims.remove("preferred_username");
+                                    claims.remove("email");
+                                })
+                                .claim("name", "Name Only"))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Name Only")));
+    }
+
+    @Test
+    void oidcUserWithOnlySubjectUsesFriendlyProfileFallback() throws Exception {
+        mockMvc.perform(get("/profile").with(oidcLogin()
+                        .idToken(token -> token.subject("sensitive-subject-123").claims(claims -> {
+                            claims.remove("preferred_username");
+                            claims.remove("email");
+                            claims.remove("name");
+                        }))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Verse member")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("sensitive-subject-123"))));
     }
 
     @Test
@@ -152,13 +238,18 @@ class SecurityMvcTests {
 
     @Test
     void anonymousAdminApiReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/admin/products")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/admin/products"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
     @Test
-    void customerCannotUseAdminApi() throws Exception {
-        mockMvc.perform(get("/api/admin/products").with(user("customer").roles("CUSTOMER")))
-                .andExpect(status().isForbidden());
+    void authenticatedUserWithoutAdminCannotUseAdminApi() throws Exception {
+        mockMvc.perform(get("/api/admin/products").with(oidcLogin()))
+                .andExpect(status().isForbidden())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
     @Test
@@ -192,7 +283,11 @@ class SecurityMvcTests {
         mockMvc.perform(post("/logout").with(oidcLogin().clientRegistration(registration)).with(csrf()))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith(
-                        "http://localhost:8180/realms/verse/protocol/openid-connect/logout?")));
+                        "http://localhost:8180/realms/verse/protocol/openid-connect/logout?")))
+                .andExpect(header().string("Location", containsString("id_token_hint=")))
+                .andExpect(header().string("Location", containsString("client_id=verse-store")))
+                .andExpect(header().string("Location", containsString("post_logout_redirect_uri=")))
+                .andExpect(header().string("Location", org.hamcrest.Matchers.not(containsString("keycloak:8080"))));
     }
 
     @TestConfiguration(proxyBeanMethods = false)

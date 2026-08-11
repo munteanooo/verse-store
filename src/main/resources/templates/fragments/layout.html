@@ -2,16 +2,11 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 <header class="site-header" th:fragment="header">
-  <a class="wordmark" th:href="@{/catalog}" aria-label="Verse catalog">VERSE</a>
-  <nav aria-label="Primary navigation">
+  <a class="wordmark" th:href="@{/}" aria-label="Verse home">VERSE</a>
+  <nav th:if="${authenticated}" aria-label="Primary navigation">
     <a th:href="@{/catalog}">Catalog</a>
     <a class="admin-link" th:if="${currentUserAdmin}" th:href="@{/admin/products}">Control Plane</a>
-    <a th:if="${authenticated}" th:href="@{/profile}" th:text="${currentUsername}">Profile</a>
-    <a th:unless="${authenticated}" th:href="@{/oauth2/authorization/verse-store}">Login</a>
-    <a th:unless="${authenticated}" th:href="@{/register}">Register</a>
-    <form class="inline-form" th:if="${authenticated}" method="post" th:action="@{/logout}">
-      <button class="link-button" type="submit">Logout</button>
-    </form>
+    <a class="profile-link" th:href="@{/profile}" th:text="${currentUsername}">Profile</a>
   </nav>
 </header>
 <footer class="site-footer" th:fragment="footer">

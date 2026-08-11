@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title>Home — Verse</title><link rel="stylesheet" th:href="@{/css/verse.css}"></head>
+<body><div class="page-shell">
+  <header th:replace="~{fragments/layout :: header}"></header>
+  <main id="main-content" class="home-page">
+    <section class="home-hero"><p class="eyebrow">Verse</p><h1>Essential forms.<br>Everyday movement.</h1>
+      <p th:text="${introduction}">A considered wardrobe of essential forms, quiet colors and pieces designed for everyday movement.</p>
+      <a class="button button--dark" th:href="@{/catalog}">Explore the catalog</a>
+    </section>
+  </main>
+  <footer th:replace="~{fragments/layout :: footer}"></footer>
+</div></body></html>

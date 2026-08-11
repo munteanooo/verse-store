@@ -69,15 +69,17 @@ Recommended repository settings:
 
 ## Local identity and access management
 
-The local stack uses Keycloak 26.7.1 with a dedicated PostgreSQL database and Mailpit for email verification. Copy `.env.example` to the ignored `.env` file and replace every `change-me` value with a strong local secret before starting the stack.
+The local stack uses Keycloak 26.7.1 with a dedicated PostgreSQL database and Mailpit for development email capture. Copy `.env.example` to the ignored `.env` file and replace every `change-me` value with a strong local secret before starting the stack.
 
 - Keycloak: `http://localhost:8180`
 - Mailpit: `http://localhost:8025`
 - Verse Store: `http://localhost:8080`
 
-The `verse` realm enables public registration, verified email, password recovery, brute-force protection, and the Keycloak Account Console. New registrations join the `customers` default group and receive the `CUSTOMER` realm role. `ADMIN` is never granted by registration or imported users; assign it manually from the Keycloak Admin Console to a local test user with a verified email.
+The `verse` realm enables public registration without mandatory email verification, password recovery, brute-force protection, and the Keycloak Account Console. New registrations join the `customers` default group and receive the `CUSTOMER` realm role. `ADMIN` is never granted by registration or imported users; assign it manually from the Keycloak Admin Console to a local test user.
 
-Catalog pages and APIs remain public. `/profile` requires `CUSTOMER` or `ADMIN`; `/admin/**` and `/api/admin/**` require `ADMIN`. UI login uses the OIDC authorization-code flow, logout terminates the Keycloak session, and profile changes, password changes, and account deletion stay inside the Keycloak Account Console. CSRF remains enabled for session-backed UI and administration requests.
+Only the landing page, authentication routes, static resources and health checks are public. Catalog pages/APIs and `/profile` require an authenticated session, independently of when the `CUSTOMER` role becomes visible in OIDC claims; `/admin/**` and `/api/admin/**` require `ADMIN`. UI login and registration use Spring Security's OIDC authorization-code flow. POST logout clears the application session and uses Keycloak RP-Initiated Logout before returning to `/`. Profile changes, password changes, and account deletion stay inside the Keycloak Account Console. CSRF remains enabled for session-backed UI and administration requests.
+
+Browser-facing authorization, account and logout URLs use `KEYCLOAK_PUBLIC_BASE_URL` (`http://localhost:8180` locally). Token, user-info and JWK requests use the internal `keycloak:8080` address in Docker. This separation prevents container-only hostnames from being sent to the browser.
 
 The client secret is injected into the realm import through `${KEYCLOAK_CLIENT_SECRET}`. Never replace this placeholder with a real secret in Git. Startup import skips an existing realm, so remove the dedicated Keycloak data volume only when intentionally testing a fresh import.
 

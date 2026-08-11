@@ -39,7 +39,16 @@ verse:
     keycloak-public-base-url: ${KEYCLOAK_PUBLIC_BASE_URL:http://localhost:8180}
     realm: verse
     client-id: verse-store
-    post-logout-redirect-uri: ${KEYCLOAK_POST_LOGOUT_REDIRECT_URI:http://localhost:8080/catalog}
+    post-logout-redirect-uri: ${KEYCLOAK_POST_LOGOUT_REDIRECT_URI:http://localhost:8080/}
+
+app:
+  storefront:
+    introduction: "A considered wardrobe of essential forms, quiet colors and pieces designed for everyday movement."
+  security:
+    keycloak-public-url: ${KEYCLOAK_PUBLIC_BASE_URL:http://localhost:8180}
+    realm: verse
+    client-id: verse-store
+    post-logout-redirect-uri: ${KEYCLOAK_POST_LOGOUT_REDIRECT_URI:http://localhost:8080/}
 
 management:
   endpoints:

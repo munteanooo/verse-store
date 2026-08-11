@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title>Verse</title><link rel="stylesheet" th:href="@{/css/verse.css}"></head>
+<body><main class="entry-page">
+  <div class="entry-mark">VERSE</div>
+  <section class="entry-card" aria-labelledby="entry-title">
+    <p class="eyebrow">Considered essentials</p>
+    <h1 id="entry-title">A quieter way to dress.</h1>
+    <p>Enter your wardrobe or create an account to begin.</p>
+    <div class="entry-actions">
+      <a class="button button--dark" th:href="@{/oauth2/authorization/verse-store}">Login</a>
+      <a class="button button--outline" th:href="@{/register}">Create account</a>
+    </div>
+  </section>
+</main></body></html>

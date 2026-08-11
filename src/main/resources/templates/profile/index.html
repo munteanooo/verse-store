@@ -6,21 +6,20 @@
   <header th:replace="~{fragments/layout :: header}"></header>
   <main id="main-content" class="profile-page">
     <section class="page-intro"><p class="eyebrow">Your account</p><h1>Profile</h1>
-      <p>Identity and credentials are managed securely by Keycloak.</p></section>
+      <p>Identity, credentials and account lifecycle are managed securely by Keycloak.</p></section>
     <dl class="profile-grid">
-      <div class="profile-item"><dt>First name</dt><dd th:text="${profile['given_name'] ?: '—'}">—</dd></div>
-      <div class="profile-item"><dt>Last name</dt><dd th:text="${profile['family_name'] ?: '—'}">—</dd></div>
-      <div class="profile-item"><dt>Username</dt><dd th:text="${profile['preferred_username']}">username</dd></div>
-      <div class="profile-item"><dt>Email</dt><dd th:text="${profile['email'] ?: '—'}">—</dd></div>
-      <div class="profile-item"><dt>Email verified</dt><dd th:text="${profile['email_verified'] == true ? 'Yes' : 'No'}">No</dd></div>
-      <div class="profile-item"><dt>Application roles</dt><dd th:text="${#strings.listJoin(applicationRoles, ', ')}">CUSTOMER</dd></div>
+      <div class="profile-item"><dt>Name</dt><dd th:text="${profile.name() ?: '—'}">—</dd></div>
+      <div class="profile-item"><dt>Username</dt><dd th:text="${profile.username() ?: '—'}">username</dd></div>
+      <div class="profile-item"><dt>Email</dt><dd th:text="${profile.email() ?: '—'}">—</dd></div>
+      <div class="profile-item"><dt>Verse roles</dt><dd th:text="${profile.roles().isEmpty() ? '—' : #strings.listJoin(profile.roles(), ', ')}">CUSTOMER</dd></div>
     </dl>
     <div class="profile-actions">
-      <a class="button button--outline" th:href="${accountConsoleUrl}">Manage personal data</a>
-      <a class="button button--outline" th:href="${changePasswordUrl}">Change password</a>
-      <a class="button button--dark" th:href="${deleteAccountUrl}">Delete account</a>
+      <a class="button button--outline" th:href="${accountConsoleUrl}">Edit personal information</a>
+      <a class="button button--outline" th:href="${accountConsoleUrl}">Change password</a>
+      <a class="button button--outline" th:href="${accountConsoleUrl}">Delete / deactivate account</a>
+      <form method="post" th:action="@{/logout}"><button class="button button--dark" type="submit">Logout</button></form>
     </div>
-    <p class="danger-note">Account deletion is confirmed in Keycloak, is irreversible, and ends the identity session.</p>
+    <p class="account-note">In Account Console, use <strong>Signing in</strong> to change your password and <strong>Personal info</strong> to delete your account.</p>
   </main>
   <footer th:replace="~{fragments/layout :: footer}"></footer>
 </div></body></html>

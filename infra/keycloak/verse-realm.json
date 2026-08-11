@@ -109,7 +109,7 @@
         "http://localhost:8080"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8080/catalog",
+        "post.logout.redirect.uris": "http://localhost:8080/",
         "oauth2.device.authorization.grant.enabled": "false",
         "oidc.ciba.grant.enabled": "false"
       },
