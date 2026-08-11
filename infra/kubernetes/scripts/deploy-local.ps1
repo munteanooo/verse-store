@@ -2,6 +2,7 @@
 param(
     [string]$ClusterName = "verse-local",
     [string]$Namespace = "verse-dev",
+    [string]$ExistingSecret = "verse-store-secrets",
     [string]$ImageTag = "",
     [string]$ValuesFile = (Join-Path $PSScriptRoot "..\helm\verse-store\values-local.yaml.example")
 )
@@ -13,11 +14,14 @@ foreach ($command in @("kubectl", "helm", "git")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required." }
 }
 if ((kubectl config current-context) -ne "kind-$ClusterName") { throw "Refusing to deploy outside kind-$ClusterName." }
+kubectl -n $Namespace get secret $ExistingSecret *> $null
+if ($LASTEXITCODE -ne 0) {
+    throw "Required Secret '$ExistingSecret' does not exist in namespace '$Namespace'. Run create-local-secret.ps1 first."
+}
 if ([string]::IsNullOrWhiteSpace($ImageTag)) { $ImageTag = "sha-$(git rev-parse HEAD)" }
 if ($ImageTag -eq "latest") { throw "The latest tag is forbidden." }
 $chart = Join-Path $PSScriptRoot "..\helm\verse-store"
 helm upgrade --install verse-store $chart --namespace $Namespace --create-namespace `
-    --values $ValuesFile --set-string "image.tag=$ImageTag" --wait --timeout 10m
+    --values $ValuesFile --set-string "existingSecret=$ExistingSecret" --set-string "image.tag=$ImageTag" --wait --timeout 10m
 kubectl -n $Namespace rollout status deployment/verse --timeout=5m
 Write-Host "Verse Store deployed with immutable tag '$ImageTag'."
-
