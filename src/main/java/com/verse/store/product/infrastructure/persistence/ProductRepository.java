@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.verse.store.product.domain.Product;
 import com.verse.store.product.domain.ProductCategory;
@@ -33,4 +34,46 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             order by product.collectionName
             """)
     List<String> findDistinctActiveCollectionNames();
+
+    @Query(value = """
+            select product
+            from Product product
+            where product.status = com.verse.store.product.domain.ProductStatus.ACTIVE
+              and (:category is null or product.category = :category)
+              and (:collectionName is null or product.collectionName = :collectionName)
+            """, countQuery = """
+            select count(product)
+            from Product product
+            where product.status = com.verse.store.product.domain.ProductStatus.ACTIVE
+              and (:category is null or product.category = :category)
+              and (:collectionName is null or product.collectionName = :collectionName)
+            """)
+    Page<Product> findActiveCatalogProducts(
+            @Param("category") ProductCategory category,
+            @Param("collectionName") String collectionName,
+            Pageable pageable);
+
+    @Query("""
+            select product
+            from Product product
+            where product.status = com.verse.store.product.domain.ProductStatus.ACTIVE
+              and product.slug = :slug
+            """)
+    Optional<Product> findActiveCatalogProductBySlug(@Param("slug") String slug);
+
+    @Query("""
+            select distinct product
+            from Product product
+            left join fetch product.variants
+            where product.id in :ids
+            """)
+    List<Product> loadCatalogVariants(@Param("ids") List<UUID> ids);
+
+    @Query("""
+            select distinct product
+            from Product product
+            left join fetch product.images
+            where product.id in :ids
+            """)
+    List<Product> loadCatalogImages(@Param("ids") List<UUID> ids);
 }
