@@ -67,10 +67,23 @@ jobs:
           POSTGRES_DB: verse_store_ci
           POSTGRES_USER: verse_ci
           POSTGRES_PASSWORD: ci-validation-only
+          KEYCLOAK_DB: keycloak_ci
+          KEYCLOAK_DB_USER: keycloak_ci
+          KEYCLOAK_DB_PASSWORD: ci-validation-only
+          KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
+          KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ci-validation-only
+          KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
           APP_PORT: "8080"
         run: docker compose config --quiet
 
       - name: Confirm password remains mandatory
+        env:
+          KEYCLOAK_DB: keycloak_ci
+          KEYCLOAK_DB_USER: keycloak_ci
+          KEYCLOAK_DB_PASSWORD: ci-validation-only
+          KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
+          KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ci-validation-only
+          KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
         run: |
           if env -u POSTGRES_PASSWORD docker compose --env-file /dev/null config --quiet 2>/dev/null; then
             echo "Compose unexpectedly accepted a missing POSTGRES_PASSWORD" >&2

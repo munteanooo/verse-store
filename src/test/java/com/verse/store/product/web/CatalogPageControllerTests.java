@@ -19,6 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -35,7 +38,9 @@ import com.verse.store.product.application.catalog.query.CatalogProductQuery;
 import com.verse.store.product.application.catalog.service.ProductCatalogService;
 import com.verse.store.product.domain.ProductCategory;
 
-@WebMvcTest(CatalogPageController.class)
+@WebMvcTest(value = CatalogPageController.class, excludeAutoConfiguration = {
+        OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
+@AutoConfigureMockMvc(addFilters = false)
 @Import(WebPageExceptionHandler.class)
 class CatalogPageControllerTests {
 

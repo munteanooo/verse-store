@@ -9,6 +9,17 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            token-uri: http://keycloak:8080/realms/verse/protocol/openid-connect/token
+            user-info-uri: http://keycloak:8080/realms/verse/protocol/openid-connect/userinfo
+            jwk-set-uri: http://keycloak:8080/realms/verse/protocol/openid-connect/certs
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://keycloak:8080/realms/verse/protocol/openid-connect/certs
   lifecycle:
     timeout-per-shutdown-phase: 30s
 

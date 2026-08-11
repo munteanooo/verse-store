@@ -5,7 +5,7 @@
   <link rel="stylesheet" th:href="@{/css/verse.css}"><script defer th:src="@{/js/admin-products.js}"></script></head>
 <body><div class="page-shell admin-shell">
   <header th:replace="~{fragments/layout :: header}"></header>
-  <main id="main-content" class="form-page"><a class="text-link back-link" th:href="@{/admin/products}">← Product Control Plane</a>
+  <main id="main-content" class="form-page"><meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"><meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}"><a class="text-link back-link" th:href="@{/admin/products}">← Product Control Plane</a>
     <div class="admin-heading"><div><p class="eyebrow" th:text="${editing ? 'Edit existing product' : 'Create a draft'}">Create</p>
       <h1 th:text="${editing ? product.name : 'New product'}">New product</h1></div></div>
     <div class="feedback feedback--error is-hidden" role="alert" data-form-error></div>

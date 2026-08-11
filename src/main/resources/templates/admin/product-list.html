@@ -6,7 +6,8 @@
 <body><div class="page-shell admin-shell">
   <header th:replace="~{fragments/layout :: header}"></header>
   <main id="main-content" data-admin-list>
-    <div class="admin-heading"><div><p class="eyebrow">Local development · unsecured</p><h1>Product Control Plane</h1></div>
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"><meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
+    <div class="admin-heading"><div><p class="eyebrow">Administrator access</p><h1>Product Control Plane</h1></div>
       <a class="button button--dark" th:href="@{/admin/products/new}">New product</a></div>
     <div class="feedback" role="status" aria-live="polite" th:classappend="${notice == null} ? ' is-hidden'" th:text="${notice}">Updated.</div>
     <form class="filter-bar" method="get" th:action="@{/admin/products}" data-auto-submit>

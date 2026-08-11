@@ -25,6 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -48,7 +51,9 @@ import com.verse.store.product.domain.ProductCategory;
 import com.verse.store.product.domain.ProductStatus;
 import com.verse.store.shared.api.GlobalExceptionHandler;
 
-@WebMvcTest(AdminProductController.class)
+@WebMvcTest(value = AdminProductController.class, excludeAutoConfiguration = {
+        OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
+@AutoConfigureMockMvc(addFilters = false)
 @Import({AdminProductApiMapper.class, GlobalExceptionHandler.class})
 class AdminProductControllerTests {
 

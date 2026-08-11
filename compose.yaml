@@ -23,6 +23,81 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
+  keycloak-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB:?KEYCLOAK_DB must be set in .env}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:?KEYCLOAK_DB_USER must be set in .env}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD must be set in .env}
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+
+  mailpit:
+    image: axllent/mailpit:v1.30
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - mailpit-data:/data
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    networks:
+      - backend
+      - edge
+    security_opt:
+      - no-new-privileges:true
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.1
+    command: ["start-dev", "--import-realm", "--hostname=http://localhost:8180", "--hostname-backchannel-dynamic=true"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/${KEYCLOAK_DB:?KEYCLOAK_DB must be set in .env}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:?KEYCLOAK_DB_USER must be set in .env}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD must be set in .env}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME:?KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME must be set in .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD:?KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD must be set in .env}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET must be set in .env}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    volumes:
+      - ./infra/keycloak/verse-realm.json:/opt/keycloak/data/import/verse-realm.json:ro
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    ports:
+      - "8180:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - backend
+      - edge
+    security_opt:
+      - no-new-privileges:true
+
   app:
     build:
       context: .
@@ -34,8 +109,18 @@ services:
       DATABASE_USERNAME: ${POSTGRES_USER:-verse}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?KEYCLOAK_CLIENT_SECRET must be set in .env}
+      KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/verse
+      KEYCLOAK_AUTHORIZATION_URI: http://localhost:8180/realms/verse/protocol/openid-connect/auth
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/verse/protocol/openid-connect/token
+      KEYCLOAK_USER_INFO_URI: http://keycloak:8080/realms/verse/protocol/openid-connect/userinfo
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/verse/protocol/openid-connect/certs
+      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8180
+      KEYCLOAK_POST_LOGOUT_REDIRECT_URI: http://localhost:${APP_PORT:-8080}/catalog
     depends_on:
       postgres:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     ports:
       - "${APP_PORT:-8080}:8080"
@@ -62,6 +147,8 @@ services:
 
 volumes:
   postgres-data:
+  keycloak-postgres-data:
+  mailpit-data:
 
 networks:
   backend:

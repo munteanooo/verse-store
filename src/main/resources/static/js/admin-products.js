@@ -1,6 +1,12 @@
 const autoSubmitFields = document.querySelectorAll('[data-auto-submit] select');
 autoSubmitFields.forEach((select) => select.addEventListener('change', () => select.form.requestSubmit()));
 
+function csrfHeaders() {
+  const token = document.querySelector('meta[name="_csrf"]')?.content;
+  const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+  return token && header ? { [header]: token } : {};
+}
+
 const list = document.querySelector('[data-admin-list]');
 if (list) {
   list.addEventListener('click', async (event) => {
@@ -13,7 +19,9 @@ if (list) {
     button.disabled = true;
     const method = action === 'delete' ? 'DELETE' : 'PATCH';
     try {
-      const response = await fetch(`/api/admin/products/${row.dataset.productId}${action === 'delete' ? '' : `/${action}`}`, { method });
+      const response = await fetch(`/api/admin/products/${row.dataset.productId}${action === 'delete' ? '' : `/${action}`}`, {
+        method, headers: csrfHeaders()
+      });
       if (!response.ok) throw new Error(await responseMessage(response));
       const notices = { publish: 'Product published.', archive: 'Product archived.', delete: 'Draft deleted.' };
       window.location.assign(`/admin/products?notice=${encodeURIComponent(notices[action])}`);
@@ -58,7 +66,7 @@ async function submitProduct(event) {
   const editing = form.dataset.mode === 'edit';
   try {
     const response = await fetch(editing ? `/api/admin/products/${form.dataset.productId}` : '/api/admin/products', {
-      method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productPayload())
+      method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders() }, body: JSON.stringify(productPayload())
     });
     if (!response.ok) {
       const problem = await responseProblem(response);

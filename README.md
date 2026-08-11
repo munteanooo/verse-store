@@ -66,3 +66,19 @@ Recommended repository settings:
 - Require the CI checks before merge and disable force-pushes to `main`.
 - Require at least one approval when the project becomes collaborative.
 - Enable GitHub secret scanning, Dependabot alerts, and dependency security updates.
+
+## Local identity and access management
+
+The local stack uses Keycloak 26.7.1 with a dedicated PostgreSQL database and Mailpit for email verification. Copy `.env.example` to the ignored `.env` file and replace every `change-me` value with a strong local secret before starting the stack.
+
+- Keycloak: `http://localhost:8180`
+- Mailpit: `http://localhost:8025`
+- Verse Store: `http://localhost:8080`
+
+The `verse` realm enables public registration, verified email, password recovery, brute-force protection, and the Keycloak Account Console. New registrations join the `customers` default group and receive the `CUSTOMER` realm role. `ADMIN` is never granted by registration or imported users; assign it manually from the Keycloak Admin Console to a local test user with a verified email.
+
+Catalog pages and APIs remain public. `/profile` requires `CUSTOMER` or `ADMIN`; `/admin/**` and `/api/admin/**` require `ADMIN`. UI login uses the OIDC authorization-code flow, logout terminates the Keycloak session, and profile changes, password changes, and account deletion stay inside the Keycloak Account Console. CSRF remains enabled for session-backed UI and administration requests.
+
+The client secret is injected into the realm import through `${KEYCLOAK_CLIENT_SECRET}`. Never replace this placeholder with a real secret in Git. Startup import skips an existing realm, so remove the dedicated Keycloak data volume only when intentionally testing a fresh import.
+
+Mailpit is a development-only SMTP capture service and must not be used as a production mail server.

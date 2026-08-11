@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title>Profile — Verse</title><link rel="stylesheet" th:href="@{/css/verse.css}"></head>
+<body><div class="page-shell">
+  <header th:replace="~{fragments/layout :: header}"></header>
+  <main id="main-content" class="profile-page">
+    <section class="page-intro"><p class="eyebrow">Your account</p><h1>Profile</h1>
+      <p>Identity and credentials are managed securely by Keycloak.</p></section>
+    <dl class="profile-grid">
+      <div class="profile-item"><dt>First name</dt><dd th:text="${profile['given_name'] ?: '—'}">—</dd></div>
+      <div class="profile-item"><dt>Last name</dt><dd th:text="${profile['family_name'] ?: '—'}">—</dd></div>
+      <div class="profile-item"><dt>Username</dt><dd th:text="${profile['preferred_username']}">username</dd></div>
+      <div class="profile-item"><dt>Email</dt><dd th:text="${profile['email'] ?: '—'}">—</dd></div>
+      <div class="profile-item"><dt>Email verified</dt><dd th:text="${profile['email_verified'] == true ? 'Yes' : 'No'}">No</dd></div>
+      <div class="profile-item"><dt>Application roles</dt><dd th:text="${#strings.listJoin(applicationRoles, ', ')}">CUSTOMER</dd></div>
+    </dl>
+    <div class="profile-actions">
+      <a class="button button--outline" th:href="${accountConsoleUrl}">Manage personal data</a>
+      <a class="button button--outline" th:href="${changePasswordUrl}">Change password</a>
+      <a class="button button--dark" th:href="${deleteAccountUrl}">Delete account</a>
+    </div>
+    <p class="danger-note">Account deletion is confirmed in Keycloak, is irreversible, and ends the identity session.</p>
+  </main>
+  <footer th:replace="~{fragments/layout :: footer}"></footer>
+</div></body></html>

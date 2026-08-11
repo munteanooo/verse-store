@@ -4,3 +4,4 @@ spring:
   flyway:
     clean-disabled: false
 
+KEYCLOAK_CLIENT_SECRET: test-only-client-secret
