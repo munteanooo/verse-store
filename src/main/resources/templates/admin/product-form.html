@@ -23,7 +23,7 @@
       </section>
       <section class="form-section"><div class="section-heading"><span>02</span><div><h2>Variants</h2><p>At least one size and color combination is required to publish.</p></div><button class="button button--outline" type="button" data-add-variant>Add variant</button></div>
         <div class="repeat-list" data-variant-list>
-          <div class="repeat-row variant-row" th:each="variant : ${editing ? product.variants : {}}">
+          <div class="repeat-row variant-row" th:each="variant : ${editing ? product.variants : {}}" th:attr="data-child-id=${variant.id}">
             <label>SKU<input data-field="sku" required th:value="${variant.sku}"></label><label>Size<input data-field="size" required th:value="${variant.size}"></label>
             <label>Color name<input data-field="colorName" required th:value="${variant.colorName}"></label><label>Color hex<input data-field="colorHex" th:value="${variant.colorHex}" placeholder="#D8C3A5"></label>
             <label>Stock<input data-field="stockQuantity" type="number" min="0" required th:value="${variant.stockQuantity}"></label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button>
@@ -33,7 +33,7 @@
       </section>
       <section class="form-section"><div class="section-heading"><span>03</span><div><h2>Images</h2><p>Choose no more than one primary image.</p></div><button class="button button--outline" type="button" data-add-image>Add image</button></div>
         <div class="repeat-list" data-image-list>
-          <div class="repeat-row image-row" th:each="image : ${editing ? product.images : {}}"><label class="field--wide">URL<input data-field="url" type="url" required th:value="${image.url}"></label><label>Alt text<input data-field="altText" th:value="${image.altText}"></label><label>Order<input data-field="displayOrder" type="number" min="0" required th:value="${image.displayOrder}"></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image" th:checked="${image.primaryImage}"> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
+          <div class="repeat-row image-row" th:each="image : ${editing ? product.images : {}}" th:attr="data-child-id=${image.id}"><label class="field--wide">URL<input data-field="url" type="url" required th:value="${image.url}"></label><label>Alt text<input data-field="altText" th:value="${image.altText}"></label><label>Order<input data-field="displayOrder" type="number" min="0" required th:value="${image.displayOrder}"></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image" th:checked="${image.primaryImage}"> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
           <div class="repeat-row image-row" th:if="${!editing}"><label class="field--wide">URL<input data-field="url" type="url" required></label><label>Alt text<input data-field="altText"></label><label>Order<input data-field="displayOrder" type="number" min="0" value="0" required></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image" checked> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
         </div><span class="field-error" data-error-for="images"></span>
       </section>

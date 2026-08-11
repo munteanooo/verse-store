@@ -182,13 +182,26 @@ class AdminProductControllerTests {
 
         mockMvc.perform(put(PRODUCT_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequest()))
+                        .content(validUpdateRequest()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(PRODUCT_ID.toString()));
 
         ArgumentCaptor<UpdateProductCommand> command = ArgumentCaptor.forClass(UpdateProductCommand.class);
         verify(productService).updateProduct(command.capture());
         assertThat(command.getValue().id()).isEqualTo(PRODUCT_ID);
+        assertThat(command.getValue().variants().getFirst().id())
+                .isEqualTo(UUID.fromString("81000000-0000-0000-0000-000000000001"));
+        assertThat(command.getValue().images().getFirst().id())
+                .isEqualTo(UUID.fromString("82000000-0000-0000-0000-000000000001"));
+    }
+
+    @Test
+    void createRejectsChildIds() throws Exception {
+        mockMvc.perform(post("/api/admin/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validUpdateRequest()))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("PRODUCT_VALIDATION_FAILED"));
     }
 
     @Test
@@ -307,6 +320,18 @@ class AdminProductControllerTests {
                   "images": []
                 }
                 """;
+    }
+
+    private static String validUpdateRequest() {
+        return validRequest()
+                .replace("\"sku\": \"ADMIN-SKU-1\"", """
+                        "id": "81000000-0000-0000-0000-000000000001",
+                            "sku": "ADMIN-SKU-1"
+                        """)
+                .replace("\"url\": \"https://images.example.com/admin-product.jpg\"", """
+                        "id": "82000000-0000-0000-0000-000000000001",
+                            "url": "https://images.example.com/admin-product.jpg"
+                        """);
     }
 
     private static ProductResult product() {

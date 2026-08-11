@@ -46,6 +46,11 @@ public class ProductImage {
     }
 
     public ProductImage(String url, String altText, int displayOrder, boolean primaryImage) {
+        updateDetails(url, altText, displayOrder, primaryImage);
+        this.createdAt = Instant.now();
+    }
+
+    public void updateDetails(String url, String altText, int displayOrder, boolean primaryImage) {
         this.url = requireText(url, "url");
         this.altText = altText;
         if (displayOrder < 0) {
@@ -53,7 +58,10 @@ public class ProductImage {
         }
         this.displayOrder = displayOrder;
         this.primaryImage = primaryImage;
-        this.createdAt = Instant.now();
+    }
+
+    public void demoteFromPrimary() {
+        this.primaryImage = false;
     }
 
     void attachTo(Product product) {

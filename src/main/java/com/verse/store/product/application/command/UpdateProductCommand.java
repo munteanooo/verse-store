@@ -22,8 +22,8 @@ public record UpdateProductCommand(
         @NotNull ProductCategory category,
         @NotNull @DecimalMin("0.00") BigDecimal basePrice,
         @NotNull @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal discountPercentage,
-        @NotNull List<@Valid CreateProductVariantCommand> variants,
-        @NotNull List<@Valid CreateProductImageCommand> images) {
+        @NotNull List<@Valid UpdateProductVariantCommand> variants,
+        @NotNull List<@Valid UpdateProductImageCommand> images) {
 
     public UpdateProductCommand {
         variants = variants == null ? null : List.copyOf(variants);

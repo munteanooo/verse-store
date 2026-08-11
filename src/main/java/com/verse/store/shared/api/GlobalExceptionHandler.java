@@ -107,9 +107,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateProductException.class)
     ResponseEntity<ApiErrorResponse> handleDuplicate(
             DuplicateProductException exception, HttpServletRequest request) {
+        String message = switch (exception.getMessage()) {
+            case "A product with this slug already exists",
+                    "A product variant with this SKU already exists",
+                    "This product already has the same size and color combination",
+                    "A product can have at most one primary image" -> exception.getMessage();
+            default -> "A product with the same slug, SKU, or variant option already exists";
+        };
         return error(
                 HttpStatus.CONFLICT, "DUPLICATE_PRODUCT",
-                "A product with the same slug, SKU, or variant option already exists", request);
+                message, request);
     }
 
     @ExceptionHandler(InvalidProductStateException.class)

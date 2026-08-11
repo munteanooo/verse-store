@@ -1,4 +1,4 @@
-package com.verse.store.product.api.admin.request;
+package com.verse.store.product.application.command;
 
 import java.util.UUID;
 
@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
-public record ProductVariantRequest(
+public record UpdateProductVariantCommand(
         UUID id,
         @NotBlank @Size(max = 100) String sku,
         @NotBlank @Size(max = 50) String size,

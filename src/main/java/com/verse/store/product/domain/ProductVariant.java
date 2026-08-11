@@ -69,6 +69,15 @@ public class ProductVariant {
         this.stockQuantity = stockQuantity;
     }
 
+    public void updateDetails(
+            String sku, String size, String colorName, String colorHex, int stockQuantity) {
+        this.sku = requireText(sku, "sku");
+        this.size = requireText(size, "size");
+        this.colorName = requireText(colorName, "colorName");
+        this.colorHex = colorHex;
+        setStockQuantity(stockQuantity);
+    }
+
     void attachTo(Product product) {
         this.product = Objects.requireNonNull(product);
     }

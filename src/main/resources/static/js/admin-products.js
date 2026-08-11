@@ -89,10 +89,12 @@ function productPayload() {
     name: value('name'), description: value('description'), brand: value('brand'), collectionName: value('collectionName'),
     category: value('category'), basePrice: Number(value('basePrice')), discountPercentage: Number(value('discountPercentage')),
     variants: [...form.querySelectorAll('.variant-row')].map((row) => ({
+      id: row.dataset.childId || null,
       sku: field(row, 'sku'), size: field(row, 'size'), colorName: field(row, 'colorName'), colorHex: field(row, 'colorHex') || null,
       stockQuantity: Number(field(row, 'stockQuantity'))
     })),
     images: [...form.querySelectorAll('.image-row')].map((row) => ({
+      id: row.dataset.childId || null,
       url: field(row, 'url'), altText: field(row, 'altText') || null, displayOrder: Number(field(row, 'displayOrder')),
       primaryImage: row.querySelector('[data-field="primaryImage"]').checked
     }))

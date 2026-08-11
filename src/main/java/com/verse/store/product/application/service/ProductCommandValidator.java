@@ -12,6 +12,8 @@ import com.verse.store.product.application.command.CreateProductCommand;
 import com.verse.store.product.application.command.CreateProductImageCommand;
 import com.verse.store.product.application.command.CreateProductVariantCommand;
 import com.verse.store.product.application.command.UpdateProductCommand;
+import com.verse.store.product.application.command.UpdateProductImageCommand;
+import com.verse.store.product.application.command.UpdateProductVariantCommand;
 import com.verse.store.product.application.exception.ProductValidationException;
 import com.verse.store.product.application.query.ProductAdminQuery;
 
@@ -34,7 +36,16 @@ public class ProductCommandValidator {
 
     public void validate(UpdateProductCommand command) {
         validateBean(command);
-        validateCollections(command.variants(), command.images());
+        validateUpdateCollections(command.variants(), command.images());
+    }
+
+    private void validateUpdateCollections(
+            List<UpdateProductVariantCommand> variants,
+            List<UpdateProductImageCommand> images) {
+        validateUniqueness(
+                variants.stream().map(variant -> new VariantValues(
+                        variant.sku(), variant.size(), variant.colorName())).toList(),
+                images.stream().filter(UpdateProductImageCommand::primaryImage).count());
     }
 
     public void validate(ProductAdminQuery query) {
@@ -58,11 +69,18 @@ public class ProductCommandValidator {
     private void validateCollections(
             List<CreateProductVariantCommand> variants,
             List<CreateProductImageCommand> images) {
+        validateUniqueness(
+                variants.stream().map(variant -> new VariantValues(
+                        variant.sku(), variant.size(), variant.colorName())).toList(),
+                images.stream().filter(CreateProductImageCommand::primaryImage).count());
+    }
+
+    private void validateUniqueness(List<VariantValues> variants, long primaryImages) {
         List<String> violations = new ArrayList<>();
         Set<String> skus = new HashSet<>();
         Set<String> options = new HashSet<>();
 
-        for (CreateProductVariantCommand variant : variants) {
+        for (VariantValues variant : variants) {
             String normalizedSku = normalize(variant.sku());
             if (!skus.add(normalizedSku)) {
                 violations.add("duplicate SKU in product: " + variant.sku());
@@ -74,7 +92,6 @@ public class ProductCommandValidator {
             }
         }
 
-        long primaryImages = images.stream().filter(CreateProductImageCommand::primaryImage).count();
         if (primaryImages > 1) {
             violations.add("a product can have at most one primary image");
         }
@@ -89,5 +106,8 @@ public class ProductCommandValidator {
 
     private static String normalize(String value) {
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private record VariantValues(String sku, String size, String colorName) {
     }
 }

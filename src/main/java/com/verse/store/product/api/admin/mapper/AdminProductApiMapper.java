@@ -1,5 +1,6 @@
 package com.verse.store.product.api.admin.mapper;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -15,6 +16,9 @@ import com.verse.store.product.application.command.CreateProductCommand;
 import com.verse.store.product.application.command.CreateProductImageCommand;
 import com.verse.store.product.application.command.CreateProductVariantCommand;
 import com.verse.store.product.application.command.UpdateProductCommand;
+import com.verse.store.product.application.command.UpdateProductImageCommand;
+import com.verse.store.product.application.command.UpdateProductVariantCommand;
+import com.verse.store.product.application.exception.ProductValidationException;
 import com.verse.store.product.application.model.ProductImageResult;
 import com.verse.store.product.application.model.ProductResult;
 import com.verse.store.product.application.model.ProductVariantResult;
@@ -23,6 +27,10 @@ import com.verse.store.product.application.model.ProductVariantResult;
 public class AdminProductApiMapper {
 
     public CreateProductCommand toCommand(CreateProductRequest request) {
+        if (request.variants().stream().anyMatch(item -> item.id() != null)
+                || request.images().stream().anyMatch(item -> item.id() != null)) {
+            throw new ProductValidationException(List.of("child IDs are not allowed when creating a product"));
+        }
         return new CreateProductCommand(
                 request.name(),
                 request.description(),
@@ -31,8 +39,8 @@ public class AdminProductApiMapper {
                 request.category(),
                 request.basePrice(),
                 request.discountPercentage(),
-                request.variants().stream().map(this::toCommand).toList(),
-                request.images().stream().map(this::toCommand).toList());
+                request.variants().stream().map(this::toCreateCommand).toList(),
+                request.images().stream().map(this::toCreateCommand).toList());
     }
 
     public UpdateProductCommand toCommand(UUID id, UpdateProductRequest request) {
@@ -45,8 +53,8 @@ public class AdminProductApiMapper {
                 request.category(),
                 request.basePrice(),
                 request.discountPercentage(),
-                request.variants().stream().map(this::toCommand).toList(),
-                request.images().stream().map(this::toCommand).toList());
+                request.variants().stream().map(this::toUpdateCommand).toList(),
+                request.images().stream().map(this::toUpdateCommand).toList());
     }
 
     public AdminProductResponse toResponse(ProductResult result) {
@@ -69,15 +77,26 @@ public class AdminProductApiMapper {
                 result.updatedAt());
     }
 
-    private CreateProductVariantCommand toCommand(ProductVariantRequest request) {
+    private CreateProductVariantCommand toCreateCommand(ProductVariantRequest request) {
         return new CreateProductVariantCommand(
                 request.sku(), request.size(), request.colorName(),
                 request.colorHex(), request.stockQuantity());
     }
 
-    private CreateProductImageCommand toCommand(ProductImageRequest request) {
+    private CreateProductImageCommand toCreateCommand(ProductImageRequest request) {
         return new CreateProductImageCommand(
                 request.url(), request.altText(), request.displayOrder(), request.primaryImage());
+    }
+
+    private UpdateProductVariantCommand toUpdateCommand(ProductVariantRequest request) {
+        return new UpdateProductVariantCommand(
+                request.id(), request.sku(), request.size(), request.colorName(),
+                request.colorHex(), request.stockQuantity());
+    }
+
+    private UpdateProductImageCommand toUpdateCommand(ProductImageRequest request) {
+        return new UpdateProductImageCommand(
+                request.id(), request.url(), request.altText(), request.displayOrder(), request.primaryImage());
     }
 
     private AdminProductVariantResponse toResponse(ProductVariantResult result) {

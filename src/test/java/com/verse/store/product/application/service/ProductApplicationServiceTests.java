@@ -28,6 +28,8 @@ import com.verse.store.product.application.command.CreateProductCommand;
 import com.verse.store.product.application.command.CreateProductImageCommand;
 import com.verse.store.product.application.command.CreateProductVariantCommand;
 import com.verse.store.product.application.command.UpdateProductCommand;
+import com.verse.store.product.application.command.UpdateProductImageCommand;
+import com.verse.store.product.application.command.UpdateProductVariantCommand;
 import com.verse.store.product.application.exception.InvalidProductStateException;
 import com.verse.store.product.application.exception.ProductNotFoundException;
 import com.verse.store.product.application.mapper.ProductMapper;
@@ -96,7 +98,10 @@ class ProductApplicationServiceTests {
         UpdateProductCommand update = new UpdateProductCommand(
                 PRODUCT_ID, "Renamed Product", "Updated", "Verse", "Updated Collection",
                 ProductCategory.KNITWEAR, new BigDecimal("120.00"), BigDecimal.ZERO,
-                variants(), images());
+                List.of(new UpdateProductVariantCommand(
+                        null, "APP-SKU-1", "M", "Sand", "#D8C3A5", 6)),
+                List.of(new UpdateProductImageCommand(
+                        null, "https://images.example.com/app-product.jpg", "Product", 0, true)));
 
         ProductResult result = service.updateProduct(update);
 

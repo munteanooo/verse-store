@@ -1,9 +1,12 @@
 package com.verse.store.product.application.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,6 +20,8 @@ import com.verse.store.product.application.command.CreateProductCommand;
 import com.verse.store.product.application.command.CreateProductImageCommand;
 import com.verse.store.product.application.command.CreateProductVariantCommand;
 import com.verse.store.product.application.command.UpdateProductCommand;
+import com.verse.store.product.application.command.UpdateProductImageCommand;
+import com.verse.store.product.application.command.UpdateProductVariantCommand;
 import com.verse.store.product.application.exception.DuplicateProductException;
 import com.verse.store.product.application.exception.InvalidProductStateException;
 import com.verse.store.product.application.exception.ProductNotFoundException;
@@ -88,9 +93,8 @@ public class ProductApplicationService {
                 command.category(),
                 command.basePrice(),
                 command.discountPercentage());
-        new ArrayList<>(product.getVariants()).forEach(product::removeVariant);
-        new ArrayList<>(product.getImages()).forEach(product::removeImage);
-        addChildren(product, command.variants(), command.images());
+        reconcileVariants(product, command.variants());
+        reconcileImages(product, command.images());
         return productMapper.toResult(save(product));
     }
 
@@ -161,9 +165,112 @@ public class ProductApplicationService {
         try {
             return productRepository.saveAndFlush(product);
         } catch (DataIntegrityViolationException exception) {
-            throw new DuplicateProductException(
-                    "Product slug, SKU, or size/color combination already exists", exception);
+            throw translateDuplicate(exception);
         }
+    }
+
+    private void reconcileVariants(Product product, List<UpdateProductVariantCommand> commands) {
+        Map<UUID, ProductVariant> existing = new HashMap<>();
+        product.getVariants().forEach(variant -> existing.put(variant.getId(), variant));
+        validateOwnedIds(commands.stream().map(UpdateProductVariantCommand::id).toList(), existing, "variant");
+
+        var retainedIds = new HashSet<>(commands.stream()
+                .map(UpdateProductVariantCommand::id).filter(java.util.Objects::nonNull).toList());
+        new ArrayList<>(product.getVariants()).stream()
+                .filter(variant -> !retainedIds.contains(variant.getId()))
+                .forEach(product::removeVariant);
+        flushChanges();
+
+        commands.forEach(command -> {
+            if (command.id() == null) {
+                product.addVariant(new ProductVariant(
+                        command.sku(), command.size(), command.colorName(),
+                        command.colorHex(), command.stockQuantity()));
+            } else {
+                existing.get(command.id()).updateDetails(
+                        command.sku(), command.size(), command.colorName(),
+                        command.colorHex(), command.stockQuantity());
+            }
+        });
+    }
+
+    private void reconcileImages(Product product, List<UpdateProductImageCommand> commands) {
+        Map<UUID, ProductImage> existing = new HashMap<>();
+        product.getImages().forEach(image -> existing.put(image.getId(), image));
+        validateOwnedIds(commands.stream().map(UpdateProductImageCommand::id).toList(), existing, "image");
+
+        UUID requestedPrimaryId = commands.stream()
+                .filter(UpdateProductImageCommand::primaryImage)
+                .map(UpdateProductImageCommand::id)
+                .filter(java.util.Objects::nonNull)
+                .findFirst().orElse(null);
+        boolean primaryChanges = product.getImages().stream().anyMatch(image ->
+                image.isPrimaryImage() && !java.util.Objects.equals(image.getId(), requestedPrimaryId));
+        if (primaryChanges) {
+            product.getImages().forEach(ProductImage::demoteFromPrimary);
+            flushChanges();
+        }
+
+        var retainedIds = new HashSet<>(commands.stream()
+                .map(UpdateProductImageCommand::id).filter(java.util.Objects::nonNull).toList());
+        new ArrayList<>(product.getImages()).stream()
+                .filter(image -> !retainedIds.contains(image.getId()))
+                .forEach(product::removeImage);
+        flushChanges();
+
+        commands.forEach(command -> {
+            if (command.id() == null) {
+                product.addImage(new ProductImage(
+                        command.url(), command.altText(), command.displayOrder(), command.primaryImage()));
+            } else {
+                existing.get(command.id()).updateDetails(
+                        command.url(), command.altText(), command.displayOrder(), command.primaryImage());
+            }
+        });
+    }
+
+    private <T> void validateOwnedIds(List<UUID> ids, Map<UUID, T> existing, String childType) {
+        Set<UUID> seen = new HashSet<>();
+        ids.stream().filter(java.util.Objects::nonNull).forEach(id -> {
+            if (!seen.add(id)) {
+                throw new ProductValidationException(List.of("duplicate " + childType + " ID: " + id));
+            }
+            if (!existing.containsKey(id)) {
+                throw new ProductValidationException(List.of(
+                        childType + " ID does not belong to this product: " + id));
+            }
+        });
+    }
+
+    private void flushChanges() {
+        try {
+            productRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw translateDuplicate(exception);
+        }
+    }
+
+    private DuplicateProductException translateDuplicate(DataIntegrityViolationException exception) {
+        String constraint = constraintName(exception);
+        String message = switch (constraint == null ? "" : constraint) {
+            case "products_slug_key" -> "A product with this slug already exists";
+            case "product_variants_sku_key" -> "A product variant with this SKU already exists";
+            case "uq_product_variants_product_size_color" ->
+                    "This product already has the same size and color combination";
+            case "uq_product_images_one_primary_per_product" ->
+                    "A product can have at most one primary image";
+            default -> "A product with the same slug, SKU, or variant option already exists";
+        };
+        return new DuplicateProductException(message, exception);
+    }
+
+    private String constraintName(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException violation) {
+                return violation.getConstraintName();
+            }
+        }
+        return null;
     }
 
     private void addChildren(
