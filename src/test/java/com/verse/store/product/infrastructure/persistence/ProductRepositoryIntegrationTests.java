@@ -16,6 +16,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.verse.store.TestcontainersConfiguration;
+import com.verse.store.product.application.model.ProductResult;
+import com.verse.store.product.application.service.ProductApplicationService;
 import com.verse.store.product.domain.Product;
 import com.verse.store.product.domain.ProductCategory;
 import com.verse.store.product.domain.ProductImage;
@@ -32,6 +34,9 @@ class ProductRepositoryIntegrationTests {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private ProductApplicationService productService;
 
     @Autowired
     private EntityManager entityManager;
@@ -91,6 +96,54 @@ class ProductRepositoryIntegrationTests {
     }
 
     @Test
+    void republishesArchivedProductWithSameIdentityAndCatalogVisibility() {
+        Product saved = productRepository.saveAndFlush(newProduct("republish-product", "REPUBLISH-SKU"));
+        UUID id = saved.getId();
+        String slug = saved.getSlug();
+        productService.publishProduct(id);
+        productService.archiveProduct(id);
+
+        assertThat(productRepository.findActiveCatalogProductBySlug(slug)).isEmpty();
+
+        ProductResult republished = productService.publishProduct(id);
+
+        assertThat(republished.id()).isEqualTo(id);
+        assertThat(republished.slug()).isEqualTo(slug);
+        assertThat(republished.status()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(productRepository.findActiveCatalogProductBySlug(slug)).isPresent();
+    }
+
+    @Test
+    void deletesActiveProductFromCatalogAndCascadesChildren() {
+        Product saved = productRepository.saveAndFlush(newProduct("delete-active", "DELETE-ACTIVE-SKU"));
+        UUID id = saved.getId();
+        productService.publishProduct(id);
+
+        productService.deleteProduct(id);
+        productRepository.flush();
+
+        assertThat(productRepository.findById(id)).isEmpty();
+        assertThat(productRepository.findActiveCatalogProductBySlug("delete-active")).isEmpty();
+        assertThat(childCount("product_variants", id)).isZero();
+        assertThat(childCount("product_images", id)).isZero();
+    }
+
+    @Test
+    void deletesArchivedProduct() {
+        Product saved = productRepository.saveAndFlush(newProduct("delete-archived", "DELETE-ARCHIVED-SKU"));
+        UUID id = saved.getId();
+        productService.publishProduct(id);
+        productService.archiveProduct(id);
+
+        productService.deleteProduct(id);
+        productRepository.flush();
+
+        assertThat(productRepository.findById(id)).isEmpty();
+        assertThat(childCount("product_variants", id)).isZero();
+        assertThat(childCount("product_images", id)).isZero();
+    }
+
+    @Test
     void filtersProductsByStatusAndCategory() {
         Page<Product> activeProducts = productRepository.findByStatus(
                 ProductStatus.ACTIVE, PageRequest.of(0, 20));
@@ -118,5 +171,13 @@ class ProductRepositoryIntegrationTests {
         product.addImage(new ProductImage(
                 "https://images.example.com/" + slug + ".jpg", "Persistence Product", 0, true));
         return product;
+    }
+
+    private int childCount(String table, UUID productId) {
+        if (!table.equals("product_variants") && !table.equals("product_images")) {
+            throw new IllegalArgumentException("unsupported child table");
+        }
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + table + " WHERE product_id = ?", Integer.class, productId);
     }
 }

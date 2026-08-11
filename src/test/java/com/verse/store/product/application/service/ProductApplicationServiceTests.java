@@ -134,7 +134,7 @@ class ProductApplicationServiceTests {
 
     @Test
     void archivesProduct() {
-        Product product = draftProduct();
+        Product product = activeProduct();
         when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(product));
 
         ProductResult result = service.archiveProduct(PRODUCT_ID);
@@ -153,14 +153,36 @@ class ProductApplicationServiceTests {
     }
 
     @Test
-    void refusesToDeleteActiveProduct() {
+    void deletesActiveProduct() {
         Product active = activeProduct();
         when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(active));
 
-        assertThatThrownBy(() -> service.deleteProduct(PRODUCT_ID))
-                .isInstanceOf(InvalidProductStateException.class)
-                .hasMessageContaining("archive");
-        verify(productRepository, never()).delete(any());
+        service.deleteProduct(PRODUCT_ID);
+
+        verify(productRepository).delete(active);
+    }
+
+    @Test
+    void deletesArchivedProduct() {
+        Product archived = activeProduct();
+        archived.archive();
+        when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(archived));
+
+        service.deleteProduct(PRODUCT_ID);
+
+        verify(productRepository).delete(archived);
+    }
+
+    @Test
+    void republishesArchivedProduct() {
+        Product product = activeProduct();
+        product.archive();
+        when(productRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(product));
+
+        ProductResult result = service.publishProduct(PRODUCT_ID);
+
+        assertThat(result.status()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(result.slug()).isEqualTo("existing-product");
     }
 
     @Test

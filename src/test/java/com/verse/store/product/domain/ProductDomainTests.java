@@ -68,6 +68,35 @@ class ProductDomainTests {
     }
 
     @Test
+    void republishesArchivedProductWithoutChangingSlug() {
+        Product product = productWithDiscount("0");
+        product.addVariant(variant("DOMAIN-SKU-REPUBLISH", 4));
+        product.addImage(primaryImage());
+        product.publish();
+        product.archive();
+        String slug = product.getSlug();
+
+        product.publish();
+
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(product.getSlug()).isEqualTo(slug);
+    }
+
+    @Test
+    void publishAndArchiveAreIdempotentInTheirTargetState() {
+        Product product = productWithDiscount("0");
+        product.addVariant(variant("DOMAIN-SKU-IDEMPOTENT", 4));
+        product.addImage(primaryImage());
+
+        product.publish();
+        product.publish();
+        product.archive();
+        product.archive();
+
+        assertThat(product.getStatus()).isEqualTo(ProductStatus.ARCHIVED);
+    }
+
+    @Test
     void totalsStockAcrossVariants() {
         Product product = productWithDiscount("0");
         product.addVariant(variant("DOMAIN-SKU-3", 7));

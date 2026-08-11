@@ -242,13 +242,13 @@ class AdminProductControllerTests {
     }
 
     @Test
-    void deleteActiveReturnsConflict() throws Exception {
-        doThrow(new InvalidProductStateException("Archive this product instead"))
+    void deleteMissingProductReturnsNotFound() throws Exception {
+        doThrow(new ProductNotFoundException(PRODUCT_ID))
                 .when(productService).deleteProduct(PRODUCT_ID);
 
         mockMvc.perform(delete(PRODUCT_PATH))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("INVALID_PRODUCT_STATE"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PRODUCT_NOT_FOUND"));
     }
 
     @Test

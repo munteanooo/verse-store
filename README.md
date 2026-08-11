@@ -93,4 +93,4 @@ Admin product images can be uploaded as JPEG, PNG or WebP files (5 MB by default
 
 Set `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` in the ignored `.env`; do not reuse these local credentials in production. `PRODUCT_IMAGE_MAX_BYTES` controls application validation and should stay aligned with Spring's multipart limit.
 
-Automatic object deletion is intentionally deferred: removing an image from a product or deleting a draft can leave an unreferenced object. This avoids deleting storage before the database transaction commits. A separate idempotent orphan-cleanup job should compare managed `/media/products/` URLs against storage objects and delete only unreferenced keys after a retention period.
+Automatic object deletion is intentionally deferred: removing an image or deleting a product can temporarily leave an unreferenced object. This avoids deleting storage before the database transaction commits. A separate idempotent orphan-cleanup job should compare managed `/media/products/` URLs against storage objects and delete only unreferenced keys after a retention period.

@@ -51,6 +51,19 @@ class AdminProductPageControllerTests {
     }
 
     @Test
+    void adminListRendersLifecycleActionsForEveryStatus() throws Exception {
+        when(productService.listProductsForAdmin(any())).thenReturn(new PageImpl<>(List.of(
+                product(ProductStatus.DRAFT), product(ProductStatus.ACTIVE), product(ProductStatus.ARCHIVED))));
+
+        mockMvc.perform(get("/admin/products"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(">Publish</button>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(">Archive</button>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(">Republish</button>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("aria-label=\"Delete Admin Product\"")));
+    }
+
+    @Test
     void newProductFormRendersAtLeastOneVariantAndImage() throws Exception {
         mockMvc.perform(get("/admin/products/new")).andExpect(status().isOk()).andExpect(view().name("admin/product-form"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("variant-row")))
@@ -77,9 +90,13 @@ class AdminProductPageControllerTests {
     }
 
     private ProductResult product() {
+        return product(ProductStatus.DRAFT);
+    }
+
+    private ProductResult product(ProductStatus status) {
         UUID id = UUID.randomUUID(); Instant now = Instant.parse("2026-01-01T00:00:00Z");
         return new ProductResult(id, "Admin Product", "admin-product", "Description", "Verse", "Control", ProductCategory.TOPS,
-                new BigDecimal("80.00"), BigDecimal.ZERO, new BigDecimal("80.00"), ProductStatus.DRAFT, 4,
+                new BigDecimal("80.00"), BigDecimal.ZERO, new BigDecimal("80.00"), status, 4,
                 List.of(new ProductVariantResult(UUID.randomUUID(), "VRS-001", "M", "Ink", "#111111", 4, now, now)),
                 List.of(new ProductImageResult(UUID.randomUUID(), "https://images.example.com/admin.jpg", "Admin Product", 0, true, now)), now, now);
     }

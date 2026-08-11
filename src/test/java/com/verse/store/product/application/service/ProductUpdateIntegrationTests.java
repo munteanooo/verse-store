@@ -70,6 +70,22 @@ class ProductUpdateIntegrationTests {
     }
 
     @Test
+    void editingArchivedProductPreservesArchivedStatusAndSlug() {
+        service.archiveProduct(PRODUCT_ID);
+        ProductResult archived = service.getProductForAdmin(PRODUCT_ID);
+        UpdateProductCommand update = new UpdateProductCommand(
+                archived.id(), "Archived product edited", archived.description(), archived.brand(),
+                archived.collectionName(), archived.category(), archived.basePrice(),
+                archived.discountPercentage(), variants(archived), images(archived));
+
+        ProductResult result = service.updateProduct(update);
+
+        assertThat(result.status()).isEqualTo(com.verse.store.product.domain.ProductStatus.ARCHIVED);
+        assertThat(result.slug()).isEqualTo(archived.slug());
+        assertThat(result.name()).isEqualTo("Archived product edited");
+    }
+
+    @Test
     void updatesOnlyNameDescriptionPriceAndImageWithoutDuplicate() {
         ProductResult before = service.getProductForAdmin(PRODUCT_ID);
         List<UpdateProductImageCommand> images = images(before);

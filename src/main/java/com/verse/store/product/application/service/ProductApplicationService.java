@@ -32,7 +32,6 @@ import com.verse.store.product.application.query.ProductAdminQuery;
 import com.verse.store.product.application.query.ProductSortDirection;
 import com.verse.store.product.domain.Product;
 import com.verse.store.product.domain.ProductImage;
-import com.verse.store.product.domain.ProductStatus;
 import com.verse.store.product.domain.ProductVariant;
 import com.verse.store.product.infrastructure.persistence.ProductRepository;
 
@@ -112,17 +111,17 @@ public class ProductApplicationService {
     @Transactional
     public ProductResult archiveProduct(UUID id) {
         Product product = findProduct(id);
-        product.archive();
+        try {
+            product.archive();
+        } catch (IllegalStateException exception) {
+            throw new InvalidProductStateException(exception.getMessage(), exception);
+        }
         return productMapper.toResult(save(product));
     }
 
     @Transactional
     public void deleteProduct(UUID id) {
         Product product = findProduct(id);
-        if (product.getStatus() != ProductStatus.DRAFT) {
-            throw new InvalidProductStateException(
-                    "Only DRAFT products can be deleted; archive this product instead");
-        }
         productRepository.delete(product);
     }
 

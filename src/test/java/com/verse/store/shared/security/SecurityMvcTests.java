@@ -6,6 +6,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -301,6 +303,30 @@ class SecurityMvcTests {
                         .with(user("admin").roles("ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void customerCannotPublishArchiveOrDeleteProducts() throws Exception {
+        String product = "/api/admin/products/70000000-0000-0000-0000-000000000001";
+
+        mockMvc.perform(patch(product + "/publish").with(user("customer").roles("CUSTOMER")).with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch(product + "/archive").with(user("customer").roles("CUSTOMER")).with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete(product).with(user("customer").roles("CUSTOMER")).with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void lifecycleMutationsWithoutCsrfAreRejected() throws Exception {
+        String product = "/api/admin/products/70000000-0000-0000-0000-000000000001";
+
+        mockMvc.perform(patch(product + "/publish").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch(product + "/archive").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(delete(product).with(user("admin").roles("ADMIN")))
                 .andExpect(status().isForbidden());
     }
 

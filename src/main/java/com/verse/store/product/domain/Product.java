@@ -161,9 +161,17 @@ public class Product {
     }
 
     public void publish() {
-        if (status != ProductStatus.DRAFT) {
-            throw new IllegalStateException("only a DRAFT product can be published");
+        if (status == ProductStatus.ACTIVE) {
+            return;
         }
+        if (status != ProductStatus.DRAFT && status != ProductStatus.ARCHIVED) {
+            throw new IllegalStateException("only a DRAFT or ARCHIVED product can be published");
+        }
+        validatePublishable();
+        status = ProductStatus.ACTIVE;
+    }
+
+    private void validatePublishable() {
         if (name == null || name.isBlank()) {
             throw new IllegalStateException("product must have a name before publishing");
         }
@@ -176,10 +184,15 @@ public class Product {
         if (images.stream().noneMatch(ProductImage::isPrimaryImage)) {
             throw new IllegalStateException("product must have a primary image before publishing");
         }
-        status = ProductStatus.ACTIVE;
     }
 
     public void archive() {
+        if (status == ProductStatus.ARCHIVED) {
+            return;
+        }
+        if (status != ProductStatus.ACTIVE) {
+            throw new IllegalStateException("only an ACTIVE product can be archived");
+        }
         status = ProductStatus.ARCHIVED;
     }
 

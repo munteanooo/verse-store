@@ -19,15 +19,16 @@
     </form>
     <div class="table-wrap">
       <table class="product-table"><thead><tr><th>Product</th><th>Category</th><th>Collection</th><th>Status</th><th>Final price</th><th>Stock</th><th><span class="sr-only">Actions</span></th></tr></thead>
-      <tbody><tr th:each="product : ${products.content}" th:attr="data-product-id=${product.id}">
+      <tbody><tr th:each="product : ${products.content}" th:attr="data-product-id=${product.id},data-product-status=${product.status.name()}">
         <td data-label="Product"><strong th:text="${product.name}">Name</strong><span th:text="${product.brand}">Brand</span></td>
         <td data-label="Category" th:text="${product.category}">TOPS</td><td data-label="Collection" th:text="${product.collectionName}">Collection</td>
         <td data-label="Status"><span class="status" th:classappend="| status--${#strings.toLowerCase(product.status)}|" th:text="${product.status}">DRAFT</span></td>
         <td data-label="Final price" th:text="|€${#numbers.formatDecimal(product.finalPrice, 1, 2)}|">€0.00</td><td data-label="Stock" th:text="${product.totalStock}">0</td>
-        <td data-label="Actions"><div class="row-actions"><a class="text-link" th:href="@{/admin/products/{id}/edit(id=${product.id})}">Edit</a>
-          <button class="link-button" th:if="${product.status.name() == 'DRAFT'}" data-action="publish">Publish</button>
-          <button class="link-button" th:if="${product.status.name() == 'ACTIVE'}" data-action="archive">Archive</button>
-          <button class="link-button link-button--danger" th:if="${product.status.name() == 'DRAFT'}" data-action="delete">Delete</button></div></td>
+        <td data-label="Actions"><div class="row-actions"><a class="text-link" th:href="@{/admin/products/{id}/edit(id=${product.id})}" th:aria-label="|Edit ${product.name}|">Edit</a>
+          <button type="button" class="link-button" th:if="${product.status.name() == 'DRAFT'}" data-action="publish" th:aria-label="|Publish ${product.name}|">Publish</button>
+          <button type="button" class="link-button" th:if="${product.status.name() == 'ACTIVE'}" data-action="archive" th:aria-label="|Archive ${product.name}|">Archive</button>
+          <button type="button" class="link-button" th:if="${product.status.name() == 'ARCHIVED'}" data-action="publish" th:aria-label="|Republish ${product.name}|">Republish</button>
+          <button type="button" class="link-button link-button--danger" data-action="delete" th:aria-label="|Delete ${product.name}|">Delete</button></div></td>
       </tr></tbody></table>
       <div class="empty-state compact" th:if="${!products.hasContent()}"><h2>No products found.</h2><p>Change the filters or create a new draft.</p></div>
     </div>

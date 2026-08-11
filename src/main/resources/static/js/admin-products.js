@@ -13,21 +13,33 @@ if (list) {
     const button = event.target.closest('[data-action]');
     if (!button) return;
     const row = button.closest('[data-product-id]');
+    if (row.dataset.busy === 'true') return;
     const action = button.dataset.action;
-    const messages = { publish: 'Publish this draft?', archive: 'Archive this active product?', delete: 'Permanently delete this draft?' };
-    if (!window.confirm(messages[action])) return;
-    button.disabled = true;
+    const status = row.dataset.productStatus;
+    const confirmation = action === 'delete'
+      ? (status === 'ACTIVE'
+          ? 'This product is currently published. Delete it permanently and remove it from the catalog?'
+          : 'Delete this product permanently?')
+      : action === 'publish'
+        ? (status === 'ARCHIVED' ? 'Republish this archived product?' : 'Publish this draft?')
+        : 'Archive this active product?';
+    if (!window.confirm(confirmation)) return;
+    row.dataset.busy = 'true';
+    row.querySelectorAll('[data-action]').forEach((actionButton) => { actionButton.disabled = true; });
     const method = action === 'delete' ? 'DELETE' : 'PATCH';
     try {
       const response = await fetch(`/api/admin/products/${row.dataset.productId}${action === 'delete' ? '' : `/${action}`}`, {
         method, headers: csrfHeaders()
       });
       if (!response.ok) throw new Error(await responseMessage(response));
-      const notices = { publish: 'Product published.', archive: 'Product archived.', delete: 'Draft deleted.' };
-      window.location.assign(`/admin/products?notice=${encodeURIComponent(notices[action])}`);
+      const notice = action === 'publish' && status === 'ARCHIVED'
+        ? 'Product republished.'
+        : { publish: 'Product published.', archive: 'Product archived.', delete: 'Product deleted.' }[action];
+      window.location.assign(`/admin/products?notice=${encodeURIComponent(notice)}`);
     } catch (error) {
       showListFeedback(error.message, true);
-      button.disabled = false;
+      row.dataset.busy = 'false';
+      row.querySelectorAll('[data-action]').forEach((actionButton) => { actionButton.disabled = false; });
     }
   });
 }

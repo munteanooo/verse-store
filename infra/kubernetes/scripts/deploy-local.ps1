@@ -3,7 +3,9 @@ param(
     [string]$ClusterName = "verse-local",
     [string]$Namespace = "verse-dev",
     [string]$ExistingSecret = "verse-store-secrets",
+    [string]$ImageRepository = "ghcr.io/munteanooo/verse-store",
     [string]$ImageTag = "",
+    [ValidateSet("Always", "IfNotPresent", "Never")][string]$ImagePullPolicy = "IfNotPresent",
     [string]$ValuesFile = (Join-Path $PSScriptRoot "..\helm\verse-store\values-local.yaml.example")
 )
 
@@ -22,6 +24,8 @@ if ([string]::IsNullOrWhiteSpace($ImageTag)) { $ImageTag = "sha-$(git rev-parse 
 if ($ImageTag -eq "latest") { throw "The latest tag is forbidden." }
 $chart = Join-Path $PSScriptRoot "..\helm\verse-store"
 helm upgrade --install verse-store $chart --namespace $Namespace --create-namespace `
-    --values $ValuesFile --set-string "existingSecret=$ExistingSecret" --set-string "image.tag=$ImageTag" --wait --timeout 10m
+    --values $ValuesFile --set-string "existingSecret=$ExistingSecret" `
+    --set-string "image.repository=$ImageRepository" --set-string "image.tag=$ImageTag" `
+    --set-string "image.pullPolicy=$ImagePullPolicy" --wait --timeout 10m
 kubectl -n $Namespace rollout status deployment/verse --timeout=5m
 Write-Host "Verse Store deployed with immutable tag '$ImageTag'."
