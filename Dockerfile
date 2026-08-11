@@ -19,7 +19,8 @@ LABEL org.opencontainers.image.title="Verse Store" \
       org.opencontainers.image.description="Minimalist product catalog and local administration interface" \
       org.opencontainers.image.vendor="Verse"
 
-RUN addgroup -S verse \
+RUN apk upgrade --no-cache \
+    && addgroup -S verse \
     && adduser -S -D -H -G verse -u 10001 verse
 
 WORKDIR /app
