@@ -5,8 +5,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.net.URI;
 
 import org.springframework.stereotype.Component;
+import org.springframework.core.env.Environment;
 
 import com.verse.store.product.application.command.CreateProductCommand;
 import com.verse.store.product.application.command.CreateProductImageCommand;
@@ -24,9 +26,11 @@ import jakarta.validation.Validator;
 public class ProductCommandValidator {
 
     private final Validator validator;
+    private final boolean localUrlsAllowed;
 
-    public ProductCommandValidator(Validator validator) {
+    public ProductCommandValidator(Validator validator, Environment environment) {
         this.validator = validator;
+        this.localUrlsAllowed = environment.matchesProfiles("local", "docker");
     }
 
     public void validate(CreateProductCommand command) {
@@ -46,6 +50,7 @@ public class ProductCommandValidator {
                 variants.stream().map(variant -> new VariantValues(
                         variant.sku(), variant.size(), variant.colorName())).toList(),
                 images.stream().filter(UpdateProductImageCommand::primaryImage).count());
+        validateImageUrls(images.stream().map(UpdateProductImageCommand::url).toList());
     }
 
     public void validate(ProductAdminQuery query) {
@@ -73,6 +78,29 @@ public class ProductCommandValidator {
                 variants.stream().map(variant -> new VariantValues(
                         variant.sku(), variant.size(), variant.colorName())).toList(),
                 images.stream().filter(CreateProductImageCommand::primaryImage).count());
+        validateImageUrls(images.stream().map(CreateProductImageCommand::url).toList());
+    }
+
+    private void validateImageUrls(List<String> urls) {
+        List<String> violations = new ArrayList<>();
+        for (String value : urls) {
+            if (value == null || value.length() > 2048) {
+                violations.add("image URL must not exceed 2048 characters");
+                continue;
+            }
+            if (value.startsWith("/media/products/")) continue;
+            try {
+                URI uri = URI.create(value);
+                boolean allowed = "https".equalsIgnoreCase(uri.getScheme())
+                        || (localUrlsAllowed && "http".equalsIgnoreCase(uri.getScheme()));
+                if (!allowed || uri.getHost() == null) {
+                    violations.add("image URL must use HTTPS");
+                }
+            } catch (IllegalArgumentException exception) {
+                violations.add("image URL is invalid");
+            }
+        }
+        if (!violations.isEmpty()) throw new ProductValidationException(violations);
     }
 
     private void validateUniqueness(List<VariantValues> variants, long primaryImages) {

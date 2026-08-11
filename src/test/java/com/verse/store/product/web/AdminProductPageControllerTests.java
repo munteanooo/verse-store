@@ -54,7 +54,10 @@ class AdminProductPageControllerTests {
     void newProductFormRendersAtLeastOneVariantAndImage() throws Exception {
         mockMvc.perform(get("/admin/products/new")).andExpect(status().isOk()).andExpect(view().name("admin/product-form"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("variant-row")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("image-row")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("image-row")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data-image-drop-zone")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Choose files")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Add by URL")));
     }
 
     @Test

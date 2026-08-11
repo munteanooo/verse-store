@@ -17,11 +17,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import com.verse.store.product.application.exception.DuplicateProductException;
 import com.verse.store.product.application.exception.InvalidProductStateException;
 import com.verse.store.product.application.exception.ProductNotFoundException;
 import com.verse.store.product.application.exception.ProductValidationException;
+import com.verse.store.product.application.image.ProductImageStorageException;
+import com.verse.store.product.application.image.ProductImageUploadException;
 import com.verse.store.product.application.catalog.exception.CatalogProductNotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -82,6 +86,33 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleUnreadableBody(
             HttpMessageNotReadableException exception, HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, "MALFORMED_JSON", "Request body is invalid", request);
+    }
+
+    @ExceptionHandler(ProductImageUploadException.class)
+    ResponseEntity<ApiErrorResponse> handleImageUpload(
+            ProductImageUploadException exception, HttpServletRequest request) {
+        return error(exception.getStatus(), exception.getCode(), exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> handleMaxUpload(
+            MaxUploadSizeExceededException exception, HttpServletRequest request) {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "IMAGE_TOO_LARGE",
+                "The image exceeds the upload limit", request);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ResponseEntity<ApiErrorResponse> handleMissingMultipartPart(
+            MissingServletRequestPartException exception, HttpServletRequest request) {
+        return error(HttpStatus.BAD_REQUEST, "INVALID_MULTIPART_REQUEST",
+                "A product image file is required", request);
+    }
+
+    @ExceptionHandler(ProductImageStorageException.class)
+    ResponseEntity<ApiErrorResponse> handleStorageUnavailable(
+            ProductImageStorageException exception, HttpServletRequest request) {
+        return error(HttpStatus.SERVICE_UNAVAILABLE, "IMAGE_STORAGE_UNAVAILABLE",
+                "Product image storage is temporarily unavailable", request);
     }
 
     @ExceptionHandler(ProductNotFoundException.class)

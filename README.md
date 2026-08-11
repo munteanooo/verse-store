@@ -74,6 +74,8 @@ The local stack uses Keycloak 26.7.1 with a dedicated PostgreSQL database and Ma
 - Keycloak: `http://localhost:8180`
 - Mailpit: `http://localhost:8025`
 - Verse Store: `http://localhost:8080`
+- MinIO API: `http://localhost:9000`
+- MinIO console: `http://localhost:9001`
 
 The `verse` realm enables public registration without mandatory email verification, password recovery, brute-force protection, and the Keycloak Account Console. New registrations join the `customers` default group and receive the `CUSTOMER` realm role. `ADMIN` is never granted by registration or imported users; assign it manually from the Keycloak Admin Console to a local test user.
 
@@ -84,3 +86,11 @@ Browser-facing authorization, account and logout URLs use `KEYCLOAK_PUBLIC_BASE_
 The client secret is injected into the realm import through `${KEYCLOAK_CLIENT_SECRET}`. Never replace this placeholder with a real secret in Git. Startup import skips an existing realm, so remove the dedicated Keycloak data volume only when intentionally testing a fresh import.
 
 Mailpit is a development-only SMTP capture service and must not be used as a production mail server.
+
+## Product image storage
+
+Admin product images can be uploaded as JPEG, PNG or WebP files (5 MB by default) or entered as external URLs. Uploaded files are stored in the persistent `minio-data` volume. The application creates `PRODUCT_IMAGE_BUCKET` idempotently and serves objects through authenticated `/media/products/{objectKey}` URLs, so browser responses never contain the internal `minio` hostname or storage credentials.
+
+Set `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD` in the ignored `.env`; do not reuse these local credentials in production. `PRODUCT_IMAGE_MAX_BYTES` controls application validation and should stay aligned with Spring's multipart limit.
+
+Automatic object deletion is intentionally deferred: removing an image from a product or deleting a draft can leave an unreferenced object. This avoids deleting storage before the database transaction commits. A separate idempotent orphan-cleanup job should compare managed `/media/products/` URLs against storage objects and delete only unreferenced keys after a retention period.

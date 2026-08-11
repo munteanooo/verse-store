@@ -11,6 +11,10 @@ spring:
     open-in-view: false
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${PRODUCT_IMAGE_MAX_SIZE:5MB}
+      max-request-size: ${PRODUCT_IMAGE_MAX_SIZE:5MB}
   security:
     oauth2:
       client:
@@ -42,6 +46,13 @@ verse:
     post-logout-redirect-uri: ${KEYCLOAK_POST_LOGOUT_REDIRECT_URI:http://localhost:8080/}
 
 app:
+  product-images:
+    endpoint: ${PRODUCT_IMAGE_STORAGE_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ROOT_USER}
+    secret-key: ${MINIO_ROOT_PASSWORD}
+    bucket: ${PRODUCT_IMAGE_BUCKET:verse-product-images}
+    max-bytes: ${PRODUCT_IMAGE_MAX_BYTES:5242880}
+    max-dimension: ${PRODUCT_IMAGE_MAX_DIMENSION:12000}
   storefront:
     introduction: "A considered wardrobe of essential forms, quiet colors and pieces designed for everyday movement."
   security:

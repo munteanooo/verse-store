@@ -26,7 +26,8 @@ class ProductCommandValidatorTests {
     @BeforeAll
     static void setUpValidator() {
         validatorFactory = Validation.buildDefaultValidatorFactory();
-        validator = new ProductCommandValidator(validatorFactory.getValidator());
+        validator = new ProductCommandValidator(
+                validatorFactory.getValidator(), new org.springframework.mock.env.MockEnvironment());
     }
 
     @AfterAll

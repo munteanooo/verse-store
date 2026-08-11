@@ -39,16 +39,20 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.verse.store.product.api.admin.AdminProductController;
+import com.verse.store.product.api.admin.ProductImageUploadController;
 import com.verse.store.product.api.admin.mapper.AdminProductApiMapper;
 import com.verse.store.product.api.catalog.CatalogProductController;
 import com.verse.store.product.api.catalog.mapper.CatalogProductApiMapper;
 import com.verse.store.product.application.catalog.service.ProductCatalogService;
 import com.verse.store.product.application.service.ProductApplicationService;
+import com.verse.store.product.application.image.ProductImageUploadService;
+import com.verse.store.product.application.image.ProductImageUploadResult;
 import com.verse.store.product.web.AdminProductPageController;
 import com.verse.store.product.web.CatalogPageController;
 
 @WebMvcTest(value = {CatalogPageController.class, AdminProductPageController.class,
-        AdminProductController.class, ProfileController.class, RegistrationController.class,
+        AdminProductController.class, ProductImageUploadController.class,
+        ProfileController.class, RegistrationController.class,
         HomeController.class, CatalogProductController.class}, excludeAutoConfiguration = {
         OAuth2ClientAutoConfiguration.class, OAuth2ResourceServerAutoConfiguration.class})
 @ImportAutoConfiguration(ServletWebSecurityAutoConfiguration.class)
@@ -63,6 +67,7 @@ class SecurityMvcTests {
     @MockitoBean AdminProductApiMapper adminProductApiMapper;
     @MockitoBean CatalogProductApiMapper catalogProductApiMapper;
     @MockitoBean JwtDecoder jwtDecoder;
+    @MockitoBean ProductImageUploadService imageUploadService;
 
     @BeforeEach
     void setUpPages() {
@@ -70,6 +75,38 @@ class SecurityMvcTests {
         when(catalogService.listActiveCategories()).thenReturn(List.of());
         when(catalogService.listActiveCollections()).thenReturn(List.of());
         when(productService.listProductsForAdmin(any())).thenReturn(Page.empty());
+    }
+
+    @Test
+    void adminCanUploadProductImageWithCsrf() throws Exception {
+        when(imageUploadService.upload(any())).thenReturn(new ProductImageUploadResult(
+                "products/10000000-0000-0000-0000-000000000001.jpg",
+                "/media/products/10000000-0000-0000-0000-000000000001.jpg"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                        "/api/admin/product-images")
+                .file(new org.springframework.mock.web.MockMultipartFile(
+                        "file", "photo.jpg", "image/jpeg", new byte[]{1}))
+                .with(user("admin").roles("ADMIN")).with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url").value(
+                        "/media/products/10000000-0000-0000-0000-000000000001.jpg"));
+    }
+
+    @Test
+    void productImageUploadEnforcesAuthenticationAdminAndCsrf() throws Exception {
+        mockMvc.perform(imageUploadRequest().with(csrf())).andExpect(status().isUnauthorized());
+        mockMvc.perform(imageUploadRequest().with(user("customer").roles("CUSTOMER")).with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(imageUploadRequest().with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    private static org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder
+            imageUploadRequest() {
+        return org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(
+                        "/api/admin/product-images")
+                .file(new org.springframework.mock.web.MockMultipartFile(
+                        "file", "photo.jpg", "image/jpeg", new byte[]{1}));
     }
 
     @Test
