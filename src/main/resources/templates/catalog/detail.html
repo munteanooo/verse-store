@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title th:text="|${product.name} — Verse|">Product — Verse</title>
+  <link rel="stylesheet" th:href="@{/css/verse.css}"><script defer th:src="@{/js/storefront.js}"></script>
+</head>
+<body><div class="page-shell">
+  <header th:replace="~{fragments/layout :: header}"></header>
+  <main id="main-content">
+    <a class="text-link back-link" th:href="@{/catalog}">← Back to catalog</a>
+    <article class="product-detail">
+      <section class="gallery" aria-label="Product images">
+        <div class="gallery__item media-frame" th:each="image : ${product.images}">
+          <img th:src="${image.url}" th:alt="${image.altText ?: product.name}" data-image-fallback>
+          <span class="image-placeholder" aria-hidden="true">VERSE</span>
+        </div>
+      </section>
+      <section class="product-info">
+        <p class="eyebrow" th:text="${product.brand}">Verse</p><h1 th:text="${product.name}">Product</h1>
+        <p class="product-context" th:text="|${product.collectionName} · ${product.category}|">Collection · Category</p>
+        <div class="price price--large" th:classappend="${product.discountPercentage.signum() > 0} ? ' price--discounted'">
+          <span class="price__current" th:text="|€${#numbers.formatDecimal(product.finalPrice, 1, 2)}|">€0.00</span>
+          <del th:if="${product.discountPercentage.signum() > 0}" th:text="|€${#numbers.formatDecimal(product.basePrice, 1, 2)}|">€0.00</del>
+          <span class="discount" th:if="${product.discountPercentage.signum() > 0}" th:text="|−${#numbers.formatDecimal(product.discountPercentage, 1, 0)}%|">−10%</span>
+        </div>
+        <p class="description" th:text="${product.description}">Description</p>
+        <div class="option-group"><h2>Available options</h2>
+          <ul class="variant-list">
+            <li th:each="variant : ${product.variants}" th:classappend="${!variant.available} ? ' is-unavailable'">
+              <span class="swatch" th:style="|--swatch: ${variant.colorHex ?: '#ddd'}|" aria-hidden="true"></span>
+              <span th:text="|${variant.colorName} · ${variant.size}|">Color · Size</span>
+              <span th:text="${variant.available ? 'Available' : 'Unavailable'}">Available</span>
+            </li>
+          </ul>
+        </div>
+        <button class="button button--dark button--wide" type="button" disabled>Coming soon</button>
+        <p class="stock-note" th:text="${product.available ? product.totalStock + ' units across all options' : 'Currently sold out'}">Stock</p>
+      </section>
+    </article>
+  </main><footer th:replace="~{fragments/layout :: footer}"></footer>
+</div></body></html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title th:text="${editing ? 'Edit product — Verse' : 'New product — Verse'}">Product — Verse</title>
+  <link rel="stylesheet" th:href="@{/css/verse.css}"><script defer th:src="@{/js/admin-products.js}"></script></head>
+<body><div class="page-shell admin-shell">
+  <header th:replace="~{fragments/layout :: header}"></header>
+  <main id="main-content" class="form-page"><a class="text-link back-link" th:href="@{/admin/products}">← Product Control Plane</a>
+    <div class="admin-heading"><div><p class="eyebrow" th:text="${editing ? 'Edit existing product' : 'Create a draft'}">Create</p>
+      <h1 th:text="${editing ? product.name : 'New product'}">New product</h1></div></div>
+    <div class="feedback feedback--error is-hidden" role="alert" data-form-error></div>
+    <form class="product-form" data-product-form th:attr="data-product-id=${editing ? product.id : ''},data-mode=${editing ? 'edit' : 'create'}" novalidate>
+      <section class="form-section"><div class="section-heading"><span>01</span><div><h2>Product</h2><p>Core catalog information. The slug is set once on creation.</p></div></div>
+        <div class="form-grid">
+          <label class="field field--wide">Name<input name="name" required maxlength="255" th:value="${editing ? product.name : ''}"><span class="field-error" data-error-for="name"></span></label>
+          <label class="field field--wide">Description<textarea name="description" rows="4" th:text="${editing ? product.description : ''}"></textarea><span class="field-error" data-error-for="description"></span></label>
+          <label class="field">Brand<input name="brand" required maxlength="255" th:value="${editing ? product.brand : ''}"><span class="field-error" data-error-for="brand"></span></label>
+          <label class="field">Collection<input name="collectionName" required maxlength="255" th:value="${editing ? product.collectionName : ''}"><span class="field-error" data-error-for="collectionName"></span></label>
+          <label class="field">Category<select name="category" required><option value="">Select category</option><option th:each="item : ${categories}" th:value="${item}" th:text="${item}" th:selected="${editing and product.category == item}">TOPS</option></select><span class="field-error" data-error-for="category"></span></label>
+          <label class="field">Base price<input name="basePrice" type="number" min="0" step="0.01" required th:value="${editing ? product.basePrice : ''}"><span class="field-error" data-error-for="basePrice"></span></label>
+          <label class="field">Discount %<input name="discountPercentage" type="number" min="0" max="100" step="0.01" required th:value="${editing ? product.discountPercentage : '0'}"><span class="field-error" data-error-for="discountPercentage"></span></label>
+        </div>
+      </section>
+      <section class="form-section"><div class="section-heading"><span>02</span><div><h2>Variants</h2><p>At least one size and color combination is required to publish.</p></div><button class="button button--outline" type="button" data-add-variant>Add variant</button></div>
+        <div class="repeat-list" data-variant-list>
+          <div class="repeat-row variant-row" th:each="variant : ${editing ? product.variants : {}}">
+            <label>SKU<input data-field="sku" required th:value="${variant.sku}"></label><label>Size<input data-field="size" required th:value="${variant.size}"></label>
+            <label>Color name<input data-field="colorName" required th:value="${variant.colorName}"></label><label>Color hex<input data-field="colorHex" th:value="${variant.colorHex}" placeholder="#D8C3A5"></label>
+            <label>Stock<input data-field="stockQuantity" type="number" min="0" required th:value="${variant.stockQuantity}"></label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button>
+          </div>
+          <div class="repeat-row variant-row" th:if="${!editing}"><label>SKU<input data-field="sku" required></label><label>Size<input data-field="size" required></label><label>Color name<input data-field="colorName" required></label><label>Color hex<input data-field="colorHex" placeholder="#D8C3A5"></label><label>Stock<input data-field="stockQuantity" type="number" min="0" value="0" required></label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
+        </div><span class="field-error" data-error-for="variants"></span>
+      </section>
+      <section class="form-section"><div class="section-heading"><span>03</span><div><h2>Images</h2><p>Choose no more than one primary image.</p></div><button class="button button--outline" type="button" data-add-image>Add image</button></div>
+        <div class="repeat-list" data-image-list>
+          <div class="repeat-row image-row" th:each="image : ${editing ? product.images : {}}"><label class="field--wide">URL<input data-field="url" type="url" required th:value="${image.url}"></label><label>Alt text<input data-field="altText" th:value="${image.altText}"></label><label>Order<input data-field="displayOrder" type="number" min="0" required th:value="${image.displayOrder}"></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image" th:checked="${image.primaryImage}"> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
+          <div class="repeat-row image-row" th:if="${!editing}"><label class="field--wide">URL<input data-field="url" type="url" required></label><label>Alt text<input data-field="altText"></label><label>Order<input data-field="displayOrder" type="number" min="0" value="0" required></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image" checked> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div>
+        </div><span class="field-error" data-error-for="images"></span>
+      </section>
+      <div class="form-actions"><a class="button button--outline" th:href="@{/admin/products}">Cancel</a><button class="button button--dark" type="submit" data-submit th:text="${editing ? 'Save changes' : 'Create draft'}">Save</button></div>
+    </form>
+  </main><footer th:replace="~{fragments/layout :: footer}"></footer>
+</div>
+<template id="variant-row-template"><div class="repeat-row variant-row"><label>SKU<input data-field="sku" required></label><label>Size<input data-field="size" required></label><label>Color name<input data-field="colorName" required></label><label>Color hex<input data-field="colorHex" placeholder="#D8C3A5"></label><label>Stock<input data-field="stockQuantity" type="number" min="0" value="0" required></label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div></template>
+<template id="image-row-template"><div class="repeat-row image-row"><label class="field--wide">URL<input data-field="url" type="url" required></label><label>Alt text<input data-field="altText"></label><label>Order<input data-field="displayOrder" type="number" min="0" value="0" required></label><label class="check-field"><input data-field="primaryImage" type="radio" name="primary-image"> Primary</label><button class="link-button link-button--danger" type="button" data-remove-row>Remove</button></div></template>
+</body></html>

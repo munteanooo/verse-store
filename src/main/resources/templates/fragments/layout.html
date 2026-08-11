@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header class="site-header" th:fragment="header">
+  <a class="wordmark" th:href="@{/catalog}" aria-label="Verse catalog">VERSE</a>
+  <nav aria-label="Primary navigation">
+    <a th:href="@{/catalog}">Catalog</a>
+    <a class="admin-link" th:href="@{/admin/products}">Admin demo</a>
+  </nav>
+</header>
+<footer class="site-footer" th:fragment="footer">
+  <span>VERSE</span><span>Considered essentials, locally managed.</span>
+</footer>
+</body>
+</html>

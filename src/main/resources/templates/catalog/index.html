@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,">
+  <title>Catalog — Verse</title>
+  <link rel="stylesheet" th:href="@{/css/verse.css}">
+  <script defer th:src="@{/js/storefront.js}"></script>
+</head>
+<body>
+<div class="page-shell">
+  <header th:replace="~{fragments/layout :: header}"></header>
+  <main id="main-content">
+    <section class="page-intro">
+      <p class="eyebrow">Current collection</p>
+      <h1>Everyday forms,<br>quietly considered.</h1>
+      <p>Essential silhouettes in grounded colors, designed to move between seasons.</p>
+    </section>
+
+    <form class="filter-bar" method="get" th:action="@{/catalog}" data-auto-submit>
+      <label>Category
+        <select name="category">
+          <option value="">All categories</option>
+          <option th:each="option : ${categories}" th:value="${option.value}" th:text="${option.label}"
+                  th:selected="${selectedCategory != null and selectedCategory.name() == option.value}">Tops</option>
+        </select>
+      </label>
+      <label>Collection
+        <select name="collection">
+          <option value="">All collections</option>
+          <option th:each="item : ${collections}" th:value="${item}" th:text="${item}"
+                  th:selected="${item == selectedCollection}">Collection</option>
+        </select>
+      </label>
+      <input type="hidden" name="size" th:value="${products.size}">
+      <a class="text-link reset-link" th:href="@{/catalog}">Reset</a>
+      <button class="button button--dark filter-submit" type="submit">Apply</button>
+    </form>
+
+    <p class="result-count" th:text="${products.totalElements == 1 ? '1 piece' : products.totalElements + ' pieces'}">4 pieces</p>
+    <section class="product-grid" aria-label="Products" th:if="${products.hasContent()}">
+      <article class="product-card" th:each="product : ${products.content}">
+        <a class="product-card__image media-frame" th:href="@{/catalog/products/{slug}(slug=${product.slug})}">
+          <img th:if="${product.primaryImageUrl != null}" th:src="${product.primaryImageUrl}"
+               th:alt="${product.primaryImageAltText ?: product.name}" loading="lazy" data-image-fallback>
+          <span class="image-placeholder" aria-hidden="true">VERSE</span>
+          <span class="badge badge--sold" th:if="${!product.available}">Sold out</span>
+        </a>
+        <div class="product-card__meta">
+          <p class="product-brand" th:text="${product.brand}">Verse</p>
+          <h2><a th:href="@{/catalog/products/{slug}(slug=${product.slug})}" th:text="${product.name}">Product</a></h2>
+          <div class="price" th:classappend="${product.discountPercentage.signum() > 0} ? ' price--discounted'">
+            <span class="price__current" th:text="|€${#numbers.formatDecimal(product.finalPrice, 1, 2)}|">€0.00</span>
+            <del th:if="${product.discountPercentage.signum() > 0}" th:text="|€${#numbers.formatDecimal(product.basePrice, 1, 2)}|">€0.00</del>
+            <span class="discount" th:if="${product.discountPercentage.signum() > 0}" th:text="|−${#numbers.formatDecimal(product.discountPercentage, 1, 0)}%|">−10%</span>
+          </div>
+        </div>
+      </article>
+    </section>
+    <section class="empty-state" th:unless="${products.hasContent()}">
+      <p class="eyebrow">No matches</p><h2>Nothing here just yet.</h2>
+      <p>Try another category or collection.</p><a class="button button--dark" th:href="@{/catalog}">Clear filters</a>
+    </section>
+
+    <nav class="pagination" aria-label="Catalog pages" th:if="${products.totalPages > 1}">
+      <a th:if="${products.hasPrevious()}" th:href="@{/catalog(page=${products.number - 1},size=${products.size},category=${selectedCategory},collection=${selectedCollection})}">← Previous</a>
+      <span th:text="|Page ${products.number + 1} of ${products.totalPages}|">Page 1 of 2</span>
+      <a th:if="${products.hasNext()}" th:href="@{/catalog(page=${products.number + 1},size=${products.size},category=${selectedCategory},collection=${selectedCollection})}">Next →</a>
+    </nav>
+  </main>
+  <footer th:replace="~{fragments/layout :: footer}"></footer>
+</div>
+</body>
+</html>
