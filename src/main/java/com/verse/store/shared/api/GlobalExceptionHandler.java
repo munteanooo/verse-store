@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.verse.store.product.application.exception.DuplicateProductException;
 import com.verse.store.product.application.exception.InvalidProductStateException;
@@ -87,6 +88,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleNotFound(
             ProductNotFoundException exception, HttpServletRequest request) {
         return error(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    ResponseEntity<ApiErrorResponse> handleMissingResource(
+            NoResourceFoundException exception, HttpServletRequest request) {
+        return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "Resource not found", request);
     }
 
     @ExceptionHandler(CatalogProductNotFoundException.class)
