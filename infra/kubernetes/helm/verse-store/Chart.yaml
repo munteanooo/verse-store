@@ -1,0 +1,8 @@
+apiVersion: v2
+name: verse-store
+description: Local Kubernetes foundations for Verse Store
+type: application
+version: 0.1.0
+appVersion: "0.0.1"
+kubeVersion: ">=1.30.0-0"
+

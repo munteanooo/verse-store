@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "verse-store.fullname" . }}-minio
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "verse-store.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+  ports:
+    - {name: api, port: 9000, targetPort: api}
+    - {name: console, port: 9001, targetPort: console}
+

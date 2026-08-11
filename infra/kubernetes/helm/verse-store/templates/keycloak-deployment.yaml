@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "verse-store.fullname" . }}-keycloak
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      {{- include "verse-store.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: keycloak
+  template:
+    metadata:
+      labels:
+        {{- include "verse-store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: keycloak
+      annotations:
+        checksum/realm: {{ include (print $.Template.BasePath "/keycloak-realm-configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: keycloak
+          image: {{ .Values.keycloak.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args: ["start-dev", "--import-realm", "--hostname={{ .Values.keycloak.publicBaseUrl }}", "--hostname-backchannel-dynamic=true"]
+          ports:
+            - {name: http, containerPort: 8080}
+            - {name: management, containerPort: 9000}
+          env:
+            - {name: KC_DB, value: postgres}
+            - {name: KC_DB_URL, value: {{ printf "jdbc:postgresql://%s-keycloak-postgres:5432/%s" (include "verse-store.fullname" .) .Values.keycloakPostgres.database | quote }}}
+            - {name: KC_DB_USERNAME, value: {{ .Values.keycloakPostgres.username | quote }}}
+            - name: KC_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: keycloak-db-password}}
+            - {name: KC_BOOTSTRAP_ADMIN_USERNAME, value: {{ .Values.keycloak.bootstrapAdminUsername | quote }}}
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: keycloak-bootstrap-admin-password}}
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: keycloak-client-secret}}
+            - {name: KC_HEALTH_ENABLED, value: "true"}
+            - {name: KC_METRICS_ENABLED, value: "true"}
+          volumeMounts:
+            - {name: realm, mountPath: /opt/keycloak/data/import, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          startupProbe:
+            httpGet: {path: /health/started, port: management}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: {path: /health/ready, port: management}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health/live, port: management}
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          resources: {{ toYaml .Values.keycloak.resources | nindent 12 }}
+      volumes:
+        - name: realm
+          configMap: {name: {{ include "verse-store.fullname" . }}-realm}
+        - name: tmp
+          emptyDir: {sizeLimit: 128Mi}

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "verse-store.fullname" . }}-realm
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+data:
+  verse-realm.json: |
+    {
+      "realm": "verse",
+      "displayName": "Verse Store",
+      "enabled": true,
+      "registrationAllowed": true,
+      "loginWithEmailAllowed": true,
+      "duplicateEmailsAllowed": false,
+      "resetPasswordAllowed": true,
+      "verifyEmail": false,
+      "bruteForceProtected": true,
+      "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername(undefined)",
+      "roles": {"realm": [
+        {"name": "CUSTOMER", "description": "Verse Store customer"},
+        {"name": "ADMIN", "description": "Verse Store control-plane administrator"}
+      ]},
+      "groups": [{"name": "customers", "realmRoles": ["CUSTOMER"]}],
+      "defaultGroups": ["/customers"],
+      "clients": [{
+        "clientId": "verse-store",
+        "name": "Verse Store",
+        "enabled": true,
+        "clientAuthenticatorType": "client-secret",
+        "secret": "${KEYCLOAK_CLIENT_SECRET}",
+        "publicClient": false,
+        "protocol": "openid-connect",
+        "standardFlowEnabled": true,
+        "implicitFlowEnabled": false,
+        "directAccessGrantsEnabled": false,
+        "redirectUris": [{{ printf "%s/login/oauth2/code/verse-store" .Values.app.publicBaseUrl | quote }}],
+        "webOrigins": [{{ .Values.app.publicBaseUrl | quote }}],
+        "attributes": {"post.logout.redirect.uris": {{ printf "%s/" .Values.app.publicBaseUrl | quote }}},
+        "defaultClientScopes": ["web-origins", "acr", "roles", "profile", "email"]
+      }],
+      "smtpServer": {
+        "host": {{ printf "%s-mailpit" (include "verse-store.fullname" .) | quote }},
+        "port": "1025", "from": "no-reply@verse.local", "fromDisplayName": "Verse Store",
+        "auth": "false", "ssl": "false", "starttls": "false"
+      }
+    }
+

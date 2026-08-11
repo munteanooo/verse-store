@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://verse-postgres:5432/verse_store}
+    username: ${DATABASE_USERNAME:verse}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+app:
+  product-images:
+    endpoint: ${PRODUCT_IMAGE_STORAGE_ENDPOINT:http://verse-minio:9000}
+    bucket: ${PRODUCT_IMAGE_BUCKET:verse-product-images}
+

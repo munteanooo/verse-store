@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "verse-store.fullname" . }}-postgres
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "verse-store.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+  ports:
+    - {name: postgres, port: 5432, targetPort: postgres}
+

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "verse-store.fullname" . }}
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.app.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels:
+      {{- include "verse-store.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        {{- include "verse-store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/app-configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "verse-store.fullname" . }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: app
+          image: {{ include "verse-store.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - {name: http, containerPort: 8080, protocol: TCP}
+          envFrom:
+            - configMapRef: {name: {{ include "verse-store.fullname" . }}-app}
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: postgres-password}}
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: keycloak-client-secret}}
+            - name: MINIO_ROOT_USER
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: minio-root-user}}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: minio-root-password}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+          startupProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: {{ .Values.app.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.app.probes.startup.failureThreshold }}
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            initialDelaySeconds: {{ .Values.app.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.probes.readiness.periodSeconds }}
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            initialDelaySeconds: {{ .Values.app.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.app.probes.liveness.periodSeconds }}
+          resources: {{ toYaml .Values.app.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {sizeLimit: 64Mi}

@@ -1,0 +1,8 @@
+Verse Store was installed in namespace {{ .Release.Namespace }}.
+
+App:      kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "verse-store.fullname" . }} 8080:8080
+Keycloak: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "verse-store.fullname" . }}-keycloak 8180:8080
+{{- if .Values.mailpit.enabled }}
+Mailpit:  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "verse-store.fullname" . }}-mailpit 8025:8025
+{{- end }}
+

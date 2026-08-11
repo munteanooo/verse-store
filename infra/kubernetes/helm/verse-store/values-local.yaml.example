@@ -1,0 +1,15 @@
+existingSecret: verse-store-secrets
+
+image:
+  # Replace with a published immutable SHA tag, for example sha-0123456789abcdef.
+  tag: sha-replace-with-published-commit
+  digest: ""
+  pullPolicy: IfNotPresent
+
+mailpit:
+  enabled: true
+
+# kind's default CNI does not enforce NetworkPolicy. Enable only with a capable CNI.
+networkPolicy:
+  enabled: false
+

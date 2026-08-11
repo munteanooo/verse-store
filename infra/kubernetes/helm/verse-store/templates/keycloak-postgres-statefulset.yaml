@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "verse-store.fullname" . }}-keycloak-postgres
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "verse-store.fullname" . }}-keycloak-postgres
+  replicas: 1
+  updateStrategy: {type: RollingUpdate}
+  selector:
+    matchLabels:
+      {{- include "verse-store.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: keycloak-postgres
+  template:
+    metadata:
+      labels:
+        {{- include "verse-store.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: keycloak-postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: postgres
+          image: {{ .Values.keycloakPostgres.image | quote }}
+          ports:
+            - {name: postgres, containerPort: 5432}
+          env:
+            - {name: POSTGRES_DB, value: {{ .Values.keycloakPostgres.database | quote }}}
+            - {name: POSTGRES_USER, value: {{ .Values.keycloakPostgres.username | quote }}}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: keycloak-db-password}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          readinessProbe:
+            exec: {command: [sh, -c, "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec: {command: [sh, -c, "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+          resources: {{ toYaml .Values.keycloakPostgres.resources | nindent 12 }}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- if .Values.keycloakPostgres.storageClass }}
+        storageClassName: {{ .Values.keycloakPostgres.storageClass | quote }}
+        {{- end }}
+        resources: {requests: {storage: {{ .Values.keycloakPostgres.storageSize }}}}
+
