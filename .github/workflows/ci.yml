@@ -73,23 +73,41 @@ jobs:
           KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
           KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ci-validation-only
           KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
+          MINIO_ROOT_USER: minio-ci
+          MINIO_ROOT_PASSWORD: ci-validation-only-minio-password
           APP_PORT: "8080"
         run: docker compose config --quiet
 
-      - name: Confirm password remains mandatory
+      - name: Confirm required credentials remain mandatory
         env:
+          POSTGRES_PASSWORD: ci-validation-only
           KEYCLOAK_DB: keycloak_ci
           KEYCLOAK_DB_USER: keycloak_ci
           KEYCLOAK_DB_PASSWORD: ci-validation-only
           KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
           KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ci-validation-only
           KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
+          MINIO_ROOT_USER: minio-ci
+          MINIO_ROOT_PASSWORD: ci-validation-only-minio-password
         run: |
-          if env -u POSTGRES_PASSWORD docker compose --env-file /dev/null config --quiet 2>/dev/null; then
-            echo "Compose unexpectedly accepted a missing POSTGRES_PASSWORD" >&2
-            exit 1
-          fi
-          echo "Required password validation is active." >> "$GITHUB_STEP_SUMMARY"
+          assert_required() {
+            variable="$1"
+            expected_message="$2"
+            if output="$(env -u "$variable" docker compose --env-file /dev/null config --quiet 2>&1)"; then
+              echo "Compose unexpectedly accepted a missing ${variable}" >&2
+              exit 1
+            fi
+            if ! grep -Fq "$expected_message" <<< "$output"; then
+              echo "Compose failed for an unexpected reason while testing ${variable}" >&2
+              exit 1
+            fi
+          }
+
+          assert_required POSTGRES_PASSWORD "POSTGRES_PASSWORD must be set in .env"
+          assert_required KEYCLOAK_CLIENT_SECRET "KEYCLOAK_CLIENT_SECRET must be set in .env"
+          assert_required MINIO_ROOT_USER "MINIO_ROOT_USER must be set in .env"
+          assert_required MINIO_ROOT_PASSWORD "MINIO_ROOT_PASSWORD must be set in .env"
+          echo "Required credential validation is active." >> "$GITHUB_STEP_SUMMARY"
 
   filesystem-scan:
     name: Trivy filesystem scan
