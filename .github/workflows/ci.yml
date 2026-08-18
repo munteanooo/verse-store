@@ -128,9 +128,46 @@ jobs:
           exit-code: "1"
           skip-dirs: .git,target
 
+  kubernetes-validation:
+    name: Validate Helm and Kubernetes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Reject committed Kubernetes Secrets and private keys
+        shell: bash
+        run: |
+          if git ls-files | grep -Ei '(^|/)(tls\.key|.*\.key|.*\.p12|.*\.pfx)$'; then
+            echo "Private key material must not be committed." >&2
+            exit 1
+          fi
+          if grep -RIl --include='*.yaml' --include='*.yml' '^kind:[[:space:]]*Secret[[:space:]]*$' infra/kubernetes; then
+            echo "Rendered Kubernetes Secret manifests must not be committed." >&2
+            exit 1
+          fi
+
+      - name: Helm lint and render
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace alpine/helm:3.19.0 \
+            lint --strict infra/kubernetes/helm/verse-store \
+            -f infra/kubernetes/helm/verse-store/values-local.yaml.example \
+            --set-string existingSecret=ci-secret --set-string image.tag=sha-ci
+          docker run --rm -v "$PWD:/workspace" -w /workspace alpine/helm:3.19.0 \
+            template verse-store infra/kubernetes/helm/verse-store --namespace verse-dev \
+            -f infra/kubernetes/helm/verse-store/values-local.yaml.example \
+            --set-string existingSecret=ci-secret --set-string image.tag=sha-ci > rendered-kubernetes.yaml
+
+      - name: Validate rendered manifests with kubeconform
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            ghcr.io/yannh/kubeconform:v0.7.0 \
+            -strict -summary -kubernetes-version 1.30.0 rendered-kubernetes.yaml
+
   container-build:
     name: Build and scan image
-    needs: [test, compose-validation, filesystem-scan]
+    needs: [test, compose-validation, filesystem-scan, kubernetes-validation]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:

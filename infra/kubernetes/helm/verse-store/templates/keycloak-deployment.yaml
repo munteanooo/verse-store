@@ -31,7 +31,13 @@ spec:
         - name: keycloak
           image: {{ .Values.keycloak.image | quote }}
           imagePullPolicy: IfNotPresent
-          args: ["start-dev", "--import-realm", "--hostname={{ .Values.keycloak.publicBaseUrl }}", "--hostname-backchannel-dynamic=true"]
+          args:
+            - start-dev
+            - --import-realm
+            - --hostname={{ .Values.keycloak.publicBaseUrl }}
+            - --hostname-backchannel-dynamic=true
+            - --proxy-headers=xforwarded
+            - --http-enabled=true
           ports:
             - {name: http, containerPort: 8080}
             - {name: management, containerPort: 9000}
