@@ -24,3 +24,8 @@ ingress:
 # kind's default CNI does not enforce NetworkPolicy. Enable only with a capable CNI.
 networkPolicy:
   enabled: false
+
+monitoring:
+  enabled: true
+  environment: local-kind
+  prometheusRelease: monitoring

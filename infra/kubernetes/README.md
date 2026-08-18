@@ -1,5 +1,7 @@
 # Verse Store on local Kubernetes
 
+Metrics, dashboards, alerts, and the separate monitoring namespace are documented in [the observability runbook](../observability/README.md).
+
 This directory provides a learning-focused Helm deployment for a dedicated kind cluster. Docker Compose remains the fastest local development path and is not replaced.
 
 ## Prerequisites

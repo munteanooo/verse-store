@@ -39,9 +39,12 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - {name: http, containerPort: 8080, protocol: TCP}
+            - {name: metrics, containerPort: {{ .Values.app.managementPort }}, protocol: TCP}
           envFrom:
             - configMapRef: {name: {{ include "verse-store.fullname" . }}-app}
           env:
+            - {name: MANAGEMENT_SERVER_PORT, value: {{ .Values.app.managementPort | quote }}}
+            - {name: OBSERVABILITY_ENVIRONMENT, value: {{ .Values.monitoring.environment | quote }}}
             - name: DATABASE_PASSWORD
               valueFrom: {secretKeyRef: {name: {{ include "verse-store.secretName" . }}, key: postgres-password}}
             - name: KEYCLOAK_CLIENT_SECRET
@@ -57,15 +60,15 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
           startupProbe:
-            httpGet: {path: /actuator/health/readiness, port: http}
+            httpGet: {path: /actuator/health/readiness, port: metrics}
             periodSeconds: {{ .Values.app.probes.startup.periodSeconds }}
             failureThreshold: {{ .Values.app.probes.startup.failureThreshold }}
           readinessProbe:
-            httpGet: {path: /actuator/health/readiness, port: http}
+            httpGet: {path: /actuator/health/readiness, port: metrics}
             initialDelaySeconds: {{ .Values.app.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.app.probes.readiness.periodSeconds }}
           livenessProbe:
-            httpGet: {path: /actuator/health/liveness, port: http}
+            httpGet: {path: /actuator/health/liveness, port: metrics}
             initialDelaySeconds: {{ .Values.app.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.app.probes.liveness.periodSeconds }}
           resources: {{ toYaml .Values.app.resources | nindent 12 }}

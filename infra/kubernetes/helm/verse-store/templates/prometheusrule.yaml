@@ -1,0 +1,66 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.rules.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "verse-store.fullname" . }}
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+    release: {{ .Values.monitoring.prometheusRelease | quote }}
+spec:
+  groups:
+    - name: verse-store.availability
+      rules:
+        - alert: VerseStoreAbsent
+          expr: absent(up{namespace={{ .Release.Namespace | quote }}, service={{ include "verse-store.fullname" . | quote }}})
+          for: 5m
+          labels: {severity: critical}
+          annotations:
+            summary: Verse Store metrics target is absent
+            description: Prometheus has discovered no Verse Store target for five minutes.
+        - alert: VerseStoreNotReady
+          expr: kube_deployment_status_replicas_available{namespace={{ .Release.Namespace | quote }}, deployment={{ include "verse-store.fullname" . | quote }}} < 1
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: Verse Store has no Ready replica
+            description: The application Deployment has had no available replica for five minutes.
+    - name: verse-store.application
+      rules:
+        - alert: VerseStoreHighHttp5xxRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace={{ .Release.Namespace | quote }},status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_server_requests_seconds_count{namespace={{ .Release.Namespace | quote }}}[5m])), 0.001) > 0.05
+            and sum(rate(http_server_requests_seconds_count{namespace={{ .Release.Namespace | quote }}}[5m])) > 0.1
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: Verse Store HTTP 5xx rate is high
+            description: More than 5% of requests are failing while traffic is non-trivial.
+        - alert: VerseStoreHighHttpLatency
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace={{ .Release.Namespace | quote }}}[5m]))) > 1.5
+            and sum(rate(http_server_requests_seconds_count{namespace={{ .Release.Namespace | quote }}}[5m])) > 0.1
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: Verse Store p95 latency is high
+            description: HTTP p95 latency has exceeded 1.5 seconds under active traffic.
+        - alert: VerseStoreJvmMemoryHigh
+          expr: |
+            sum(jvm_memory_used_bytes{namespace={{ .Release.Namespace | quote }},area="heap"})
+            / clamp_min(sum(jvm_memory_max_bytes{namespace={{ .Release.Namespace | quote }},area="heap"}), 1) > 0.85
+          for: 15m
+          labels: {severity: warning}
+          annotations:
+            summary: Verse Store JVM heap usage is high
+            description: JVM heap usage has remained above 85% for fifteen minutes.
+        - alert: VerseStoreHikariPoolNearExhaustion
+          expr: |
+            sum(hikaricp_connections_active{namespace={{ .Release.Namespace | quote }}})
+            / clamp_min(sum(hikaricp_connections_max{namespace={{ .Release.Namespace | quote }}}), 1) > 0.90
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: Verse Store database pool is nearly exhausted
+            description: More than 90% of HikariCP connections are active for ten minutes.
+{{- end }}

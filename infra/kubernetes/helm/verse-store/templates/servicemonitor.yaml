@@ -1,0 +1,20 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "verse-store.fullname" . }}
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+    release: {{ .Values.monitoring.prometheusRelease | quote }}
+spec:
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace | quote }}]
+  selector:
+    matchLabels:
+      {{- include "verse-store.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: /actuator/prometheus
+      interval: {{ .Values.monitoring.scrapeInterval | quote }}
+      scheme: http
+{{- end }}

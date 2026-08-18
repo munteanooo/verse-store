@@ -75,6 +75,7 @@ jobs:
           KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
           MINIO_ROOT_USER: minio-ci
           MINIO_ROOT_PASSWORD: ci-validation-only-minio-password
+          GRAFANA_ADMIN_PASSWORD: ci-validation-only-grafana-password
           APP_PORT: "8080"
         run: docker compose config --quiet
 
@@ -89,6 +90,7 @@ jobs:
           KEYCLOAK_CLIENT_SECRET: ci-validation-only-client-secret
           MINIO_ROOT_USER: minio-ci
           MINIO_ROOT_PASSWORD: ci-validation-only-minio-password
+          GRAFANA_ADMIN_PASSWORD: ci-validation-only-grafana-password
         run: |
           assert_required() {
             variable="$1"
@@ -107,6 +109,7 @@ jobs:
           assert_required KEYCLOAK_CLIENT_SECRET "KEYCLOAK_CLIENT_SECRET must be set in .env"
           assert_required MINIO_ROOT_USER "MINIO_ROOT_USER must be set in .env"
           assert_required MINIO_ROOT_PASSWORD "MINIO_ROOT_PASSWORD must be set in .env"
+          assert_required GRAFANA_ADMIN_PASSWORD "GRAFANA_ADMIN_PASSWORD must be set in .env"
           echo "Required credential validation is active." >> "$GITHUB_STEP_SUMMARY"
 
   filesystem-scan:
@@ -159,11 +162,21 @@ jobs:
             -f infra/kubernetes/helm/verse-store/values-local.yaml.example \
             --set-string existingSecret=ci-secret --set-string image.tag=sha-ci > rendered-kubernetes.yaml
 
+      - name: Validate observability assets
+        run: |
+          jq empty infra/observability/grafana/dashboards/*.json
+          docker run --rm -v "$PWD:/workspace" -w /workspace alpine/helm:3.19.0 \
+            template monitoring oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+            --version 88.1.3 --namespace monitoring --skip-crds \
+            -f infra/observability/kubernetes/kube-prometheus-stack-values.yaml \
+            > rendered-monitoring.yaml
+
       - name: Validate rendered manifests with kubeconform
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             ghcr.io/yannh/kubeconform:v0.7.0 \
-            -strict -summary -kubernetes-version 1.30.0 rendered-kubernetes.yaml
+            -strict -summary -ignore-missing-schemas -kubernetes-version 1.30.0 \
+            rendered-kubernetes.yaml rendered-monitoring.yaml
 
   container-build:
     name: Build and scan image

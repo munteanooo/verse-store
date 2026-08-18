@@ -33,6 +33,12 @@ spec:
     - from:
         - namespaceSelector: {}
       ports: [{protocol: TCP, port: 8080}]
+    {{- if .Values.monitoring.enabled }}
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: monitoring}
+      ports: [{protocol: TCP, port: {{ .Values.app.managementPort }}}]
+    {{- end }}
   egress:
     - to: [{podSelector: {matchLabels: {app.kubernetes.io/component: postgres}}}]
       ports: [{protocol: TCP, port: 5432}]

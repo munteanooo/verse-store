@@ -12,6 +12,7 @@ imagePullSecrets: []
 app:
   replicaCount: 1
   port: 8080
+  managementPort: 9090
   publicBaseUrl: https://verse.local
   terminationGracePeriodSeconds: 30
   resources:
@@ -86,6 +87,14 @@ ingress:
 
 networkPolicy:
   enabled: false
+
+monitoring:
+  enabled: false
+  environment: local-kind
+  prometheusRelease: monitoring
+  scrapeInterval: 30s
+  rules:
+    enabled: true
 
 podDisruptionBudget:
   enabled: false

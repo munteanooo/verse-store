@@ -1,0 +1,6 @@
+{"uid":"verse-jvm","title":"Verse Store JVM","tags":["verse-store","jvm"],"schemaVersion":41,"version":1,"refresh":"15s","panels":[
+{"id":1,"type":"timeseries","title":"Memory used by pool","gridPos":{"x":0,"y":0,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"legendFormat":"{{id}}","expr":"jvm_memory_used_bytes{application=\"verse-store\"}"}],"fieldConfig":{"defaults":{"unit":"bytes"}}},
+{"id":2,"type":"timeseries","title":"GC pauses","gridPos":{"x":12,"y":0,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"legendFormat":"{{action}} {{cause}}","expr":"rate(jvm_gc_pause_seconds_sum{application=\"verse-store\"}[5m])"}]},
+{"id":3,"type":"timeseries","title":"Live and daemon threads","gridPos":{"x":0,"y":8,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"legendFormat":"live","expr":"jvm_threads_live_threads{application=\"verse-store\"}"},{"legendFormat":"daemon","expr":"jvm_threads_daemon_threads{application=\"verse-store\"}"}]},
+{"id":4,"type":"timeseries","title":"Class loading","gridPos":{"x":12,"y":8,"w":12,"h":8},"datasource":{"type":"prometheus","uid":"prometheus"},"targets":[{"expr":"jvm_classes_loaded_classes{application=\"verse-store\"}"}]}
+]}

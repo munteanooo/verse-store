@@ -11,4 +11,4 @@ spec:
     app.kubernetes.io/component: app
   ports:
     - {name: http, port: 8080, targetPort: http}
-
+    - {name: metrics, port: {{ .Values.app.managementPort }}, targetPort: metrics}
