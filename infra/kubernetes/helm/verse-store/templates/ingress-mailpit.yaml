@@ -1,0 +1,27 @@
+{{- if and .Values.ingress.enabled .Values.mailpit.enabled .Values.ingress.mailpit.enabled }}
+{{- $host := required "ingress.mailpit.host is required when Mailpit ingress is enabled" .Values.ingress.mailpit.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "verse-store.fullname" . }}-mailpit
+  labels:
+    {{- include "verse-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ required "ingress.className is required when ingress is enabled" .Values.ingress.className | quote }}
+  tls:
+    - hosts: [{{ $host | quote }}]
+      secretName: {{ required "ingress.tlsSecretName is required when ingress is enabled" .Values.ingress.tlsSecretName | quote }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "verse-store.fullname" . }}-mailpit
+                port: {name: http}
+{{- end }}

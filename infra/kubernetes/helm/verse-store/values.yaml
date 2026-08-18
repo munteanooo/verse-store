@@ -12,7 +12,7 @@ imagePullSecrets: []
 app:
   replicaCount: 1
   port: 8080
-  publicBaseUrl: http://localhost:8080
+  publicBaseUrl: https://verse.local
   terminationGracePeriodSeconds: 30
   resources:
     requests: {cpu: 250m, memory: 384Mi}
@@ -45,7 +45,7 @@ keycloakPostgres:
 keycloak:
   image: quay.io/keycloak/keycloak:26.7.1
   bootstrapAdminUsername: admin
-  publicBaseUrl: http://localhost:8180
+  publicBaseUrl: https://auth.verse.local
   resources:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {cpu: "1", memory: 1Gi}
@@ -65,6 +65,24 @@ mailpit:
   resources:
     requests: {cpu: 25m, memory: 64Mi}
     limits: {cpu: 200m, memory: 256Mi}
+
+ingress:
+  enabled: false
+  className: nginx
+  tlsSecretName: verse-local-tls
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "6m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  app:
+    host: verse.local
+  keycloak:
+    host: auth.verse.local
+  mailpit:
+    enabled: false
+    host: mail.verse.local
 
 networkPolicy:
   enabled: false

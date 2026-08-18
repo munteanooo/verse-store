@@ -9,7 +9,18 @@ image:
 mailpit:
   enabled: true
 
+ingress:
+  enabled: true
+  className: nginx
+  tlsSecretName: verse-local-tls
+  app:
+    host: verse.local
+  keycloak:
+    host: auth.verse.local
+  mailpit:
+    enabled: true
+    host: mail.verse.local
+
 # kind's default CNI does not enforce NetworkPolicy. Enable only with a capable CNI.
 networkPolicy:
   enabled: false
-
