@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM eclipse-temurin:26-jdk-alpine AS build
+FROM eclipse-temurin:27-jdk-alpine AS build
 WORKDIR /workspace
 
 COPY pom.xml mvnw ./
@@ -13,7 +13,7 @@ RUN ./mvnw -B -ntp -DskipTests \
     -Dproject.build.outputTimestamp=2026-01-01T00:00:00Z \
     clean package
 
-FROM eclipse-temurin:26-jre-alpine AS runtime
+FROM eclipse-temurin:27-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="Verse Store" \
       org.opencontainers.image.description="Minimalist product catalog and local administration interface" \
